@@ -208,7 +208,7 @@ databases:
 
   # Redis (Render Key Value) — used by BullMQ + WhatsApp session cache
   - name: jdw-redis
-    type: redis
+    type: keyvalue
     plan: starter
     region: frankfurt
     ipAllowList: []   # private — only accessible from within Render network
