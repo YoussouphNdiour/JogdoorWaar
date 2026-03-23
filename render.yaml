@@ -1,11 +1,8 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # render.yaml — Jog Door Waar — Infrastructure as Code
-# Deploy: push to main → GitHub Actions CI → Render deploy hooks
-# Docs: https://render.com/docs/infrastructure-as-code
 # ─────────────────────────────────────────────────────────────────────────────
 
 services:
-
   # ─── 1. Frontend (Next.js 14) ──────────────────────────────────────────────
   - type: web
     name: jdw-web
@@ -16,13 +13,12 @@ services:
     buildCommand: npm ci && npx turbo run build --filter=@jdw/shared-types --filter=@jdw/ui --filter=@jdw/web
     startCommand: cd apps/web && npm start
     healthCheckPath: /
-    autoDeploy: false   # triggered by GitHub Actions deploy hook
+    autoDeploy: false
     envVars:
       - key: NODE_ENV
         value: production
-      # Point to the API — update with your real jdw-api Render URL after first deploy
       - key: NEXT_PUBLIC_API_URL
-        sync: false  # e.g. https://jdw-api.onrender.com
+        sync: false
       - key: NEXT_PUBLIC_POSTHOG_KEY
         sync: false
 
@@ -41,62 +37,47 @@ services:
     healthCheckPath: /health
     autoDeploy: false
     envVars:
-      # ─── Database ──────────────────────────────────────────────────────────
       - key: DATABASE_URL
         fromDatabase:
           name: jdw-postgres
           property: connectionString
-
       - key: REDIS_URL
         fromService:
+          type: keyvalue
           name: jdw-redis
           property: connectionString
-
-      # ─── Search — set manually after first deploy ─────────────────────────
-      # Internal Render URL format: https://jdw-meilisearch:7700 (private network)
       - key: MEILISEARCH_URL
-        sync: false  # set to http://jdw-meilisearch:7700 after deploying private service
+        sync: false
       - key: MEILISEARCH_API_KEY
-        sync: false  # must match MEILI_MASTER_KEY set on jdw-meilisearch service
-
-      # ─── Auth ──────────────────────────────────────────────────────────────
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN
         value: 900s
-      # ENCRYPTION_KEY: generate 64-char hex manually
-      #   openssl rand -hex 32
       - key: ENCRYPTION_KEY
         sync: false
-
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: GOOGLE_CALLBACK_URL
-        sync: false  # e.g. https://jdw-api.onrender.com/auth/google/callback
-
-      # ─── URLs ──────────────────────────────────────────────────────────────
+        sync: false
       - key: FRONTEND_URL
-        sync: false  # e.g. https://jdw-web.onrender.com or https://jogdoorwaar.sn
+        sync: false
       - key: API_URL
-        sync: false  # e.g. https://jdw-api.onrender.com
+        sync: false
       - key: APP_URL
-        sync: false  # same as FRONTEND_URL
+        sync: false
       - key: NODE_ENV
         value: production
       - key: PORT
         value: '3001'
-
-      # ─── AI ────────────────────────────────────────────────────────────────
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: OPENAI_API_KEY
         sync: false
-
-      # ─── Notifications ─────────────────────────────────────────────────────
       - key: RESEND_API_KEY
         sync: false
       - key: NOTIFICATION_FROM_EMAIL
@@ -105,8 +86,6 @@ services:
         sync: false
       - key: WASENDER_WEBHOOK_SECRET
         generateValue: true
-
-      # ─── Paiements ─────────────────────────────────────────────────────────
       - key: WAVE_API_SECRET
         sync: false
       - key: WAVE_WEBHOOK_SECRET
@@ -121,8 +100,6 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
-
-      # ─── Supabase Storage ──────────────────────────────────────────────────
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_KEY
@@ -131,18 +108,14 @@ services:
         sync: false
       - key: SUPABASE_STORAGE_BUCKET
         value: jogdoorwaar-files
-
-      # ─── Monitoring ────────────────────────────────────────────────────────
       - key: SENTRY_DSN
         sync: false
-
-      # ─── SuperAdmin seed ───────────────────────────────────────────────────
       - key: SUPERADMIN_EMAIL
         value: admin@jogdoorwaar.sn
       - key: SUPERADMIN_PASSWORD
         sync: false
 
-  # ─── 3. Scraping Worker (BullMQ consumer + CRON) ──────────────────────────
+  # ─── 3. Scraping Worker ────────────────────────────────────────────────────
   - type: worker
     name: jdw-scrapers
     runtime: node
@@ -162,6 +135,7 @@ services:
           property: connectionString
       - key: REDIS_URL
         fromService:
+          type: keyvalue
           name: jdw-redis
           property: connectionString
       - key: NODE_ENV
@@ -171,11 +145,11 @@ services:
       - key: OPENAI_API_KEY
         sync: false
       - key: MEILISEARCH_URL
-        sync: false  # same value as jdw-api MEILISEARCH_URL
+        sync: false
       - key: MEILISEARCH_API_KEY
         sync: false
 
-  # ─── 4. Meilisearch (private search service) ──────────────────────────────
+  # ─── 4. Meilisearch ────────────────────────────────────────────────────────
   - type: pserv
     name: jdw-meilisearch
     runtime: image
@@ -189,28 +163,24 @@ services:
       sizeGB: 10
     envVars:
       - key: MEILI_MASTER_KEY
-        generateValue: true   # copy this value → MEILISEARCH_API_KEY on jdw-api + jdw-scrapers
+        generateValue: true
       - key: MEILI_ENV
         value: production
       - key: MEILI_DB_PATH
         value: /meili_data
-    # Redis (Render Key Value) — used by BullMQ + WhatsApp session cache
-  - key: REDIS_URL
-    fromService:
-      type: keyvalue
-      name: jdw-redis
-      property: connectionString  # private — only accessible from within Render network
-# ─── Databases ─────────────────────────────────────────────────────────────
 
+  # ─── 5. Redis (Key Value) ──────────────────────────────────────────────────
+  - type: keyvalue
+    name: jdw-redis
+    plan: starter
+    region: frankfurt
+    ipAllowList: []
+
+# ─── Databases ─────────────────────────────────────────────────────────────
 databases:
-  # PostgreSQL 16 with pgvector extension (enabled via Prisma migration)
   - name: jdw-postgres
-    plan: pro-4gb   
+    plan: pro-4gb
     region: frankfurt
     databaseName: jogdoorwaar
     user: jdw
     postgresMajorVersion: 16
-    diskSizeGB: 100        # Optional: set initial storage
-
-
-
