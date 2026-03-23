@@ -205,10 +205,12 @@ services:
 databases:
   # PostgreSQL 16 with pgvector extension (enabled via Prisma migration)
   - name: jdw-postgres
-    plan: standard
+    plan: pro-4gb   
     region: frankfurt
     databaseName: jogdoorwaar
     user: jdw
     postgresMajorVersion: 16
+    diskSizeGB: 100        # Optional: set initial storage
+
 
 
