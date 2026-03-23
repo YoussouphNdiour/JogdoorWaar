@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Design tokens CSS ──────────────────────────────────────── */
+:root {
+  --color-terracotta: #E8580A;
+  --color-savane: #1B4332;
+  --color-gold: #F5C842;
+  --color-sand: #FDFAF6;
+  --color-sand-dark: #F5EFE6;
+
+  --font-syne: 'Syne', sans-serif;
+  --font-dm-sans: 'DM Sans', sans-serif;
+}
+
+/* ─── Base styles ────────────────────────────────────────────── */
+@layer base {
+  body {
+    background-color: var(--color-sand);
+    color: theme('colors.savane.DEFAULT');
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-syne);
+    font-weight: 700;
+  }
+}
+
+/* ─── Utilities ──────────────────────────────────────────────── */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

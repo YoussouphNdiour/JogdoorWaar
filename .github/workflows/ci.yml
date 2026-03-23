@@ -1,0 +1,167 @@
+name: CI/CD Jog Door Waar
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # ─── Tests & Lint ───────────────────────────────────────────────
+  test:
+    name: Test & Lint
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - '5432:5432'
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - '6379:6379'
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build shared packages
+        run: npx turbo run build --filter=@jdw/shared-types --filter=@jdw/config
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Generate Prisma client
+        run: cd apps/api && npx prisma generate
+
+      - name: Run Prisma migrations (test DB)
+        run: cd apps/api && npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test_jwt_secret_min_32_characters_long
+          JWT_REFRESH_SECRET: test_refresh_secret_min_32_characters
+          NODE_ENV: test
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  # ─── E2E Tests ───────────────────────────────────────────────────
+  e2e:
+    name: E2E Tests (Playwright)
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build web app
+        run: npx turbo run build --filter=@jdw/web
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+
+      - name: Run E2E tests
+        run: npx playwright test
+        env:
+          BASE_URL: http://localhost:3000
+          CI: 'true'
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  # ─── Deploy Staging (develop → staging) ─────────────────────────
+  deploy-staging:
+    name: Deploy Staging
+    needs: [test, e2e]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Deploy API to Render Staging
+        run: curl -fsS -X POST "${{ secrets.RENDER_STAGING_DEPLOY_HOOK_API }}"
+
+      - name: Deploy Web to Render Staging
+        run: curl -fsS -X POST "${{ secrets.RENDER_STAGING_DEPLOY_HOOK_WEB }}"
+
+      - name: Deploy Worker to Render Staging
+        run: curl -fsS -X POST "${{ secrets.RENDER_STAGING_DEPLOY_HOOK_WORKER }}"
+
+  # ─── Deploy Production (main → prod) ────────────────────────────
+  deploy-production:
+    name: Deploy Production
+    needs: [test, e2e]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy API to Render Production
+        run: curl -fsS -X POST "${{ secrets.RENDER_PROD_DEPLOY_HOOK_API }}"
+
+      - name: Deploy Web to Render Production
+        run: curl -fsS -X POST "${{ secrets.RENDER_PROD_DEPLOY_HOOK_WEB }}"
+
+      - name: Deploy Worker to Render Production
+        run: curl -fsS -X POST "${{ secrets.RENDER_PROD_DEPLOY_HOOK_WORKER }}"
+
+      - name: Notify Sentry Release
+        run: |
+          curl -sL https://sentry.io/get-cli/ | bash
+          sentry-cli releases new "${{ github.sha }}"
+          sentry-cli releases set-commits "${{ github.sha }}" --auto
+          sentry-cli releases finalize "${{ github.sha }}"
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        continue-on-error: true

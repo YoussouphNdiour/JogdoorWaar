@@ -1,0 +1,47 @@
+# ─── Secrets ────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+
+# ─── Dependencies ────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# ─── Production builds ──────────────────────────────────────────
+dist/
+.next/
+out/
+build/
+
+# ─── Turbo ──────────────────────────────────────────────────────
+.turbo/
+
+# ─── Logs ───────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ─── Testing ────────────────────────────────────────────────────
+coverage/
+
+# ─── IDE ────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.sw?
+
+# ─── OS ─────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── Prisma ─────────────────────────────────────────────────────
+# Ne pas ignorer prisma/migrations — les commiter en VCS
+# prisma/migrations/
+
+# ─── Upload / Storage locaux ────────────────────────────────────
+uploads/
