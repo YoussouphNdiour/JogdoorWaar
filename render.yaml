@@ -48,7 +48,7 @@ services:
           property: connectionString
 
       - key: REDIS_URL
-        fromDatabase:
+        fromService:
           name: jdw-redis
           property: connectionString
 
@@ -161,7 +161,7 @@ services:
           name: jdw-postgres
           property: connectionString
       - key: REDIS_URL
-        fromDatabase:
+        fromService:
           name: jdw-redis
           property: connectionString
       - key: NODE_ENV
