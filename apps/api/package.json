@@ -27,7 +27,6 @@
     "@nestjs/bull": "^10.2.1",
     "@nestjs/swagger": "^7.3.0",
     "@nestjs/schedule": "^4.0.2",
-    "@nestjs/multipart": "^10.3.0",
     "@prisma/client": "^5.14.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
