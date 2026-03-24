@@ -252,11 +252,10 @@ export class WhatsAppBotService {
         select: { plan: true },
       });
 
-      const coverLetter = await this.aiService.generateCoverLetter(
+      const { coverLetter } = await this.aiService.generateCoverLetter(
         session.userId,
         session.context.jobId!,
         session.context.selectedCvId!,
-        user?.plan ?? Plan.FREE,
       );
 
       await this.stateService.transition(session, WhatsAppBotState.REVIEWING_COVER_LETTER, {
