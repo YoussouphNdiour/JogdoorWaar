@@ -66,19 +66,21 @@ export class MatchingService {
     // ── 3. Vector score via pgvector cosine similarity ──────────────────
     let vectorScore = 0;
 
-    if (cv.embedding && job.embedding) {
-      const result = await this.prisma.$queryRaw<{ score: number }[]>`
-        SELECT
-          1 - (
-            cv.embedding <=> j.embedding
-          ) AS score
-        FROM "UserCV" cv,
-             "Job" j
-        WHERE cv.id = ${cv.id}
-          AND j.id  = ${jobId}
-      `;
-      vectorScore = Math.max(0, Math.min(1, result[0]?.score ?? 0));
-    }
+    // embedding is Unsupported("vector") — omitted from Prisma types but present in DB.
+    // The SQL returns NULL (→ 0) when either embedding is missing, so no guard needed.
+    const result = await this.prisma.$queryRaw<{ score: number }[]>`
+      SELECT
+        1 - (
+          cv.embedding <=> j.embedding
+        ) AS score
+      FROM "UserCV" cv,
+           "Job" j
+      WHERE cv.id = ${cv.id}
+        AND j.id  = ${jobId}
+        AND cv.embedding IS NOT NULL
+        AND j.embedding  IS NOT NULL
+    `;
+    vectorScore = Math.max(0, Math.min(1, result[0]?.score ?? 0));
 
     // ── 4. LLM qualitative score ─────────────────────────────────────────
     const llmResult = await this.scoreLlm(userId, cv.textContent, job);

@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import * as cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser';
 import * as Sentry from '@sentry/node';
 import { AppModule } from './app.module';
 import { SentryExceptionFilter } from './common/filters/sentry-exception.filter';

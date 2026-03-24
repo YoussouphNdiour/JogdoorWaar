@@ -204,8 +204,8 @@ export class JobsService {
       matchScore = match?.score ?? null;
     }
 
-    // Strip the unsupported pgvector field before returning
-    const { embedding: _embedding, ...rest } = job;
+    // Strip the pgvector field Prisma omits from generated types (Unsupported)
+    const { embedding: _embedding, ...rest } = job as typeof job & { embedding?: unknown };
 
     return {
       ...rest,
