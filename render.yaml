@@ -90,11 +90,15 @@ services:
         sync: false
       - key: WAVE_WEBHOOK_SECRET
         generateValue: true
-      - key: ORANGE_MONEY_API_KEY
+      - key: ORANGE_MONEY_API_KEY       # OAuth2 client_id
         sync: false
-      - key: ORANGE_MONEY_MERCHANT_KEY
+      - key: ORANGE_MONEY_MERCHANT_KEY  # OAuth2 client_secret
         sync: false
-      - key: ORANGE_MONEY_WEBHOOK_SECRET
+      - key: ORANGE_MONEY_MERCHANT_CODE # 6-digit merchant code
+        sync: false
+      - key: ORANGE_MONEY_MERCHANT_NAME # merchant display name (default: Jog Door Waar)
+        sync: false
+      - key: ORANGE_MONEY_WEBHOOK_SECRET # shared apiKey for callback verification
         generateValue: true
       - key: STRIPE_SECRET_KEY
         sync: false

@@ -47,7 +47,7 @@ export class PaymentsController {
   async initiatePayment(
     @CurrentUser() user: JwtPayload,
     @Body() dto: InitiatePaymentDto,
-  ): Promise<{ redirectUrl: string }> {
+  ): Promise<{ redirectUrl?: string; qrCode?: string }> {
     return this.paymentsService.initiatePayment(user.sub, dto);
   }
 
@@ -111,25 +111,23 @@ export class PaymentsController {
   @ApiOperation({
     summary: 'Orange Money payment webhook',
     description:
-      'Receives Orange Money payment events. Signature verified via HMAC-SHA256.',
+      'Receives Orange Sonatel QR code payment callbacks. Authenticated via shared apiKey (X-Api-Key header).',
   })
   async orangeWebhook(
     @Req() req: RawBodyRequest<Request>,
   ): Promise<{ received: true }> {
-    const rawBody = req.rawBody;
-    const signature = req.headers['x-orange-signature'];
+    const apiKey = req.headers['x-api-key'];
 
-    if (!rawBody) {
-      throw new UnauthorizedException('Missing raw body');
-    }
-
-    if (typeof signature !== 'string' || !signature) {
-      throw new UnauthorizedException('Missing X-Orange-Signature header');
+    if (typeof apiKey !== 'string' || !apiKey) {
+      throw new UnauthorizedException('Missing X-Api-Key header');
     }
 
     const payload = req.body as Record<string, unknown>;
 
-    await this.paymentsService.handleOrangeWebhook(rawBody, signature, payload);
+    await this.paymentsService.handleOrangeWebhook(
+      apiKey,
+      payload as import('./orange-money.service').OrangeWebhookPayload,
+    );
 
     return { received: true };
   }

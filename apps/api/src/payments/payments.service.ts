@@ -8,7 +8,7 @@ import { Plan, Subscription } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
-import { OrangeMoneyService } from './orange-money.service';
+import { OrangeMoneyService, OrangeWebhookPayload } from './orange-money.service';
 import { StripeService } from './stripe.service';
 import { WaveService } from './wave.service';
 
@@ -28,11 +28,7 @@ interface WaveWebhookPayload {
   [key: string]: unknown;
 }
 
-interface OrangeWebhookPayload {
-  order_id?: string;
-  status?: string;
-  [key: string]: unknown;
-}
+// OrangeWebhookPayload is imported from orange-money.service
 
 /**
  * PaymentsService orchestrates subscription lifecycle:
@@ -61,7 +57,7 @@ export class PaymentsService {
   async initiatePayment(
     userId: string,
     dto: InitiatePaymentDto,
-  ): Promise<{ redirectUrl: string }> {
+  ): Promise<{ redirectUrl?: string; qrCode?: string }> {
     if (dto.plan === Plan.FREE) {
       throw new BadRequestException('The FREE plan cannot be purchased.');
     }
@@ -107,7 +103,8 @@ export class PaymentsService {
       },
     });
 
-    let redirectUrl: string;
+    let redirectUrl: string | undefined;
+    let qrCode: string | undefined;
 
     if (dto.paymentMethod === 'WAVE') {
       const result = await this.waveService.createCheckoutSession(
@@ -123,7 +120,7 @@ export class PaymentsService {
         amount,
         clientRef,
       );
-      redirectUrl = result.paymentUrl;
+      qrCode = result.qrCode;
     } else {
       const result = await this.stripeService.createCheckoutSession(
         userId,
@@ -138,7 +135,7 @@ export class PaymentsService {
       `Payment initiated: user=${userId} plan=${dto.plan} method=${dto.paymentMethod} ref=${clientRef}`,
     );
 
-    return { redirectUrl };
+    return { redirectUrl, qrCode };
   }
 
   // ---------------------------------------------------------------------------
@@ -180,36 +177,32 @@ export class PaymentsService {
   }
 
   /**
-   * Handle an incoming Orange Money webhook.
-   * Verifies HMAC-SHA256 signature then activates subscription on success status.
+   * Handle an incoming Orange Money webhook (Orange Sonatel QR code callback).
+   * Verifies the shared apiKey then activates subscription on SUCCESS status.
+   * Docs: POST /api/eWallet/v4/qrcode → X-Callback-Url
    */
   async handleOrangeWebhook(
-    rawBody: Buffer,
-    signature: string,
+    apiKey: string,
     payload: OrangeWebhookPayload,
   ): Promise<void> {
-    const valid = this.orangeMoneyService.verifyWebhookSignature(
-      rawBody,
-      signature,
-    );
+    const valid = this.orangeMoneyService.verifyWebhookApiKey(apiKey);
     if (!valid) {
-      this.logger.warn('Orange Money webhook signature verification failed');
-      throw new UnauthorizedException('Invalid Orange Money webhook signature');
+      this.logger.warn('Orange Money webhook apiKey verification failed');
+      throw new UnauthorizedException('Invalid Orange Money webhook apiKey');
     }
 
-    // Orange Money sends status 'SUCCESS' on completed payment.
     if (payload.status !== 'SUCCESS') {
       this.logger.log(`Orange Money webhook ignored — status: ${payload.status}`);
       return;
     }
 
-    const orderId = payload.order_id;
-    if (!orderId) {
-      this.logger.warn('Orange Money webhook missing order_id');
+    const ref = payload.reference;
+    if (!ref) {
+      this.logger.warn('Orange Money webhook missing reference');
       return;
     }
 
-    await this.activateSubscriptionByRef(orderId, 'ORANGE_MONEY', orderId);
+    await this.activateSubscriptionByRef(ref, 'ORANGE_MONEY', payload.transactionId ?? ref);
   }
 
   /**
