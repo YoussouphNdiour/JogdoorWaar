@@ -41,6 +41,7 @@ model User {
   sessions         Session[]
   aiUsageLogs      AiUsageLog[]
   whatsappSessions WhatsAppSession[]
+  matchScores      MatchScore[]
 }
 
 model UserProfile {
@@ -197,6 +198,7 @@ model Alert {
 model MatchScore {
   id        String   @id @default(cuid())
   userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   jobId     String
   job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
   score     Float
@@ -237,6 +239,7 @@ model Application {
 model SavedJob {
   id        String   @id @default(cuid())
   userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   jobId     String
   job       Job      @relation(fields: [jobId], references: [id])
   createdAt DateTime @default(now())
