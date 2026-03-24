@@ -52,14 +52,8 @@ export class CvSelectorService {
       );
     }
 
-    if (!job.embedding) {
-      // No job embedding — return default CV
-      const defaultCv =
-        cvs.find((c) => c.isDefault) ?? cvs[cvs.length - 1];
-      return { cv: defaultCv, score: 0 };
-    }
-
-    // Rank all CVs of this user against the job via pgvector
+    // embedding is Unsupported("vector") — omitted from Prisma types but present in DB.
+    // NULL guard lives in the SQL WHERE clause; empty results fall back below.
     const results = await this.prisma.$queryRaw<
       { id: string; score: number }[]
     >`
@@ -68,9 +62,10 @@ export class CvSelectorService {
         1 - (cv.embedding <=> j.embedding) AS score
       FROM "UserCV" cv,
            "Job"   j
-      WHERE cv."userId" = ${userId}
-        AND j.id        = ${jobId}
-        AND cv.embedding IS NOT NULL
+      WHERE cv."userId"    = ${userId}
+        AND j.id           = ${jobId}
+        AND cv.embedding   IS NOT NULL
+        AND j.embedding    IS NOT NULL
       ORDER BY score DESC
       LIMIT 1
     `;
