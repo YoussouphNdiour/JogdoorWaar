@@ -61,7 +61,7 @@ export class AiController {
   // ─── GET /ai/job-summary/:jobId ───────────────────────────────────────
 
   @Get('job-summary/:jobId')
-  @ApiOperation({ summary: 'Résumé IA de l'offre (cache Redis 24h)' })
+  @ApiOperation({ summary: "Résumé IA de l'offre (cache Redis 24h)" })
   @ApiParam({ name: 'jobId', description: "ID de l'offre" })
   jobSummary(@Param('jobId') jobId: string) {
     return this.aiService.summarizeJob(jobId);
@@ -83,7 +83,7 @@ export class AiController {
 
   @Post('cv-analysis')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Analyse détaillée d'un CV par IA (PREMIUM)' })
+  @ApiOperation({ summary: "Analyse détaillée d'un CV par IA (PREMIUM)" })
   analyzeCv(
     @CurrentUser() user: JwtPayload,
     @Body() dto: CvAnalysisDto,

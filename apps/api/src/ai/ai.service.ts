@@ -496,7 +496,7 @@ Réponds UNIQUEMENT avec le JSON.`,
       throw new NotFoundException(
         cvId
           ? `CV introuvable (id: ${cvId})`
-          : 'Aucun CV par défaut configuré. Uploadez un CV d'abord.',
+          : "Aucun CV par défaut configuré. Uploadez un CV d'abord.",
       );
     }
 

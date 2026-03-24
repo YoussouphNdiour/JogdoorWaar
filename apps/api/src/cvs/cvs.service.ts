@@ -142,7 +142,7 @@ export class CvsService {
     const count = await this.prisma.userCV.count({ where: { userId } });
     if (count <= 1) {
       throw new ForbiddenException(
-        'Impossible de supprimer votre unique CV. Uploadez-en un autre d'abord.',
+        "Impossible de supprimer votre unique CV. Uploadez-en un autre d'abord.",
       );
     }
 

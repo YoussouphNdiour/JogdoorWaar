@@ -92,7 +92,7 @@ export class CvsController {
   // ─── PUT /cvs/:id ─────────────────────────────────────────────────────
 
   @Put(':id')
-  @ApiOperation({ summary: 'Met à jour les métadonnées d'un CV' })
+  @ApiOperation({ summary: "Met à jour les métadonnées d'un CV" })
   @ApiParam({ name: 'id', description: 'ID du CV' })
   update(
     @CurrentUser() user: JwtPayload,
@@ -137,7 +137,7 @@ export class CvsController {
 
   @Get(':id/download')
   @Redirect()
-  @ApiOperation({ summary: 'Redirige vers l'URL de téléchargement du CV' })
+  @ApiOperation({ summary: "Redirige vers l'URL de téléchargement du CV" })
   @ApiParam({ name: 'id', description: 'ID du CV' })
   async download(@CurrentUser() user: JwtPayload, @Param('id') cvId: string) {
     const cv = await this.cvsService.findOne(user.sub, cvId);
@@ -149,7 +149,7 @@ export class CvsController {
   @Get(':id/match/:jobId')
   @ApiOperation({ summary: 'Score de correspondance vectoriel CV ↔ offre' })
   @ApiParam({ name: 'id', description: 'ID du CV' })
-  @ApiParam({ name: 'jobId', description: 'ID de l'offre' })
+  @ApiParam({ name: 'jobId', description: "ID de l'offre" })
   getMatchScore(
     @CurrentUser() user: JwtPayload,
     @Param('id') cvId: string,

@@ -208,7 +208,7 @@ export class AuthController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Retourne le profil de l'utilisateur connecté' })
+  @ApiOperation({ summary: "Retourne le profil de l'utilisateur connecté" })
   @ApiResponse({ status: 200, description: 'Profil utilisateur' })
   @ApiResponse({ status: 401, description: 'Non authentifié' })
   async me(@CurrentUser() user: JwtPayload): Promise<SafeUser> {

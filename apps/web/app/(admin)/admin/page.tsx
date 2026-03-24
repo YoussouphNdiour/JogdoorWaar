@@ -54,11 +54,13 @@ function RoleBadge({ role }: { role: UserRole }) {
     CANDIDATE: 'bg-blue-50 text-blue-600',
     RECRUITER: 'bg-yellow-50 text-yellow-700',
     ADMIN: 'bg-red-50 text-red-600',
+    SUPERADMIN: 'bg-purple-50 text-purple-700',
   };
   const labels: Record<UserRole, string> = {
     CANDIDATE: 'Candidat',
     RECRUITER: 'Recruteur',
     ADMIN: 'Admin',
+    SUPERADMIN: 'Super Admin',
   };
   return (
     <span className={`text-[10px] font-dm font-semibold px-2 py-0.5 rounded-full ${map[role]}`}>
