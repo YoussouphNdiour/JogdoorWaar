@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { SourcePlatform } from '@prisma/client';
 import { DeduplicationService } from './deduplication.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RawJob } from './interfaces/raw-job.interface';
@@ -8,10 +9,9 @@ const mockJob: RawJob = {
   company: 'Orange Sénégal',
   description: 'Description du poste',
   sourceUrl: 'https://emploisenegal.com/offre/123',
-  sourcePlatform: 'EMPLOISENEGAL',
+  sourcePlatform: SourcePlatform.EMPLOI_SENEGAL,
   publishedAt: new Date('2026-03-01'),
   city: 'Dakar',
-  requiredSkills: [],
 };
 
 describe('DeduplicationService', () => {

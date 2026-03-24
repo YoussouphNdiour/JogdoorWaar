@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import { WhatsAppBotState } from '@prisma/client';
+import { Prisma, WhatsAppBotState } from '@prisma/client';
 import { SessionData, BotContext } from './interfaces/bot-context.interface';
 import * as Redis from 'ioredis';
 
@@ -96,13 +96,13 @@ export class WhatsAppStateService implements OnModuleInit {
         userId: data.userId,
         phone: data.phone,
         state: data.state as WhatsAppBotState,
-        context: data.context,
+        context: data.context as unknown as Prisma.InputJsonValue,
         lastMessageAt: new Date(data.lastMessageAt),
         expiresAt: new Date(Date.now() + SESSION_TTL_SECONDS * 1000),
       },
       update: {
         state: data.state as WhatsAppBotState,
-        context: data.context,
+        context: data.context as unknown as Prisma.InputJsonValue,
         lastMessageAt: new Date(data.lastMessageAt),
         expiresAt: new Date(Date.now() + SESSION_TTL_SECONDS * 1000),
       },
