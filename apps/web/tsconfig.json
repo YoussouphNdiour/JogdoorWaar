@@ -16,7 +16,7 @@
     "incremental": true,
     "plugins": [{ "name": "next" }],
     "paths": {
-      "@/*": ["./src/*"],
+      "@/*": ["./*"],
       "@jdw/ui": ["../../packages/ui/src"],
       "@jdw/shared-types": ["../../packages/shared-types/src"]
     }
