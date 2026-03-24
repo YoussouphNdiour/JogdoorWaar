@@ -32,8 +32,12 @@ services:
     buildCommand: >
       npm install --include=dev &&
       npx turbo run build --filter=@jdw/shared-types --filter=@jdw/config &&
-      cd apps/api && npx prisma generate && npx nest build
-    startCommand: cd apps/api && npx prisma db push --skip-generate --accept-data-loss && node dist/main.js
+      cd apps/api && npx prisma generate
+    startCommand: >
+      cd apps/api &&
+      npx nest build &&
+      npx prisma db push --skip-generate --accept-data-loss &&
+      node dist/main.js
     healthCheckPath: /health
     autoDeploy: false
     envVars:
@@ -129,8 +133,8 @@ services:
     buildCommand: >
       npm install --include=dev &&
       npx turbo run build --filter=@jdw/shared-types --filter=@jdw/config &&
-      cd apps/api && npx prisma generate && npx nest build
-    startCommand: cd apps/api && node dist/worker.js
+      cd apps/api && npx prisma generate
+    startCommand: cd apps/api && npx nest build && node dist/worker.js
     autoDeploy: false
     envVars:
       - key: DATABASE_URL
