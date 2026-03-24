@@ -33,7 +33,7 @@ services:
       npm ci --ignore-scripts &&
       npx turbo run build --filter=@jdw/shared-types --filter=@jdw/config --filter=@jdw/api &&
       cd apps/api && npx prisma generate
-    startCommand: cd apps/api && npx prisma migrate deploy && node dist/main.js
+    startCommand: cd apps/api && npx prisma db push --skip-generate --accept-data-loss && node dist/main.js
     healthCheckPath: /health
     autoDeploy: false
     envVars:

@@ -118,7 +118,7 @@ function DashboardTab() {
 
   useEffect(() => {
     getAdminStats().then(setPlatformStats).catch(console.error);
-    getAdminUsers({ page: 1, limit: 5 }).then((r) => setRecentUsers(r.data)).catch(console.error);
+    getAdminUsers({ page: 1, limit: 5 }).then((r) => setRecentUsers(r?.data ?? [])).catch(console.error);
   }, []);
 
   const stats = [
@@ -232,7 +232,7 @@ function UsersTab() {
   const fetchUsers = useCallback(() => {
     setLoading(true);
     getAdminUsers({ search, plan: planFilter, role: roleFilter, limit: 50 })
-      .then((r) => setUsers(r.data))
+      .then((r) => setUsers(r?.data ?? []))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [search, planFilter, roleFilter]);
@@ -368,7 +368,7 @@ function JobsTab() {
       isVerified: verifiedFilter !== 'ALL' ? verifiedFilter : undefined,
       limit: 50,
     })
-      .then((r) => setJobs(r.data))
+      .then((r) => setJobs(r?.data ?? []))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [sourceFilter, verifiedFilter]);
