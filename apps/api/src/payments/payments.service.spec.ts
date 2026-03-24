@@ -142,7 +142,11 @@ describe('PaymentsService', () => {
       (prisma.subscription.findUnique as jest.Mock).mockResolvedValue(pendingSub);
       (prisma.$transaction as jest.Mock).mockResolvedValue({});
 
-      await service.handleWaveWebhook(successPayload, 'valid-sig');
+      await service.handleWaveWebhook(
+        Buffer.from(JSON.stringify(successPayload)),
+        'valid-sig',
+        successPayload,
+      );
 
       expect(prisma.$transaction).toHaveBeenCalled();
     });
@@ -151,7 +155,11 @@ describe('PaymentsService', () => {
       (waveService.verifyWebhookSignature as jest.Mock).mockReturnValue(false);
 
       await expect(
-        service.handleWaveWebhook(successPayload, 'bad-sig'),
+        service.handleWaveWebhook(
+          Buffer.from(JSON.stringify(successPayload)),
+          'bad-sig',
+          successPayload,
+        ),
       ).rejects.toThrow(UnauthorizedException);
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
@@ -160,7 +168,12 @@ describe('PaymentsService', () => {
       (waveService.verifyWebhookSignature as jest.Mock).mockReturnValue(true);
       (prisma.subscription.findUnique as jest.Mock).mockResolvedValue(pendingSub);
 
-      await service.handleWaveWebhook({ ...successPayload, status: 'failed' }, 'valid-sig');
+      const failedPayload = { ...successPayload, status: 'failed' };
+      await service.handleWaveWebhook(
+        Buffer.from(JSON.stringify(failedPayload)),
+        'valid-sig',
+        failedPayload,
+      );
 
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
@@ -171,7 +184,11 @@ describe('PaymentsService', () => {
 
       // Ne doit pas lever d'exception, juste ignorer
       await expect(
-        service.handleWaveWebhook(successPayload, 'valid-sig'),
+        service.handleWaveWebhook(
+          Buffer.from(JSON.stringify(successPayload)),
+          'valid-sig',
+          successPayload,
+        ),
       ).resolves.not.toThrow();
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
