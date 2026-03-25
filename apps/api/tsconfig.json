@@ -8,14 +8,14 @@
     "allowSyntheticDefaultImports": true,
     "target": "ES2021",
     "outDir": "./dist",
+    "rootDir": "src",
     "baseUrl": "./",
     "strictNullChecks": false,
     "noImplicitAny": false,
     "paths": {
-      "@/*": ["./src/*"],
-      "@jdw/shared-types": ["../../packages/shared-types/src"]
+      "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*", "prisma/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

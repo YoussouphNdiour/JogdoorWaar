@@ -22,12 +22,7 @@ RUN npx turbo run build --filter=@jdw/shared-types --filter=@jdw/config
 RUN cd apps/api && npx prisma generate
 
 # 3. Compile NestJS → dist/
-# Show resolved config (check for noEmit, outDir)
-RUN cd apps/api && npx tsc --showConfig 2>&1 | grep -E '"noEmit|outDir|rootDir|include|files"' || true
-# Compile with full diagnostics
-RUN cd apps/api && npx tsc --project tsconfig.json --listEmittedFiles 2>&1; echo "tsc exit: $?"
-# Show what was actually produced
-RUN find /app/apps/api -name "*.js" -not -path "*/node_modules/*" 2>/dev/null | head -20; echo "--- find done ---"
+RUN cd apps/api && npx tsc --project tsconfig.json
 
 # Guard: confirm main.js was produced
 RUN ls apps/api/dist/main.js
