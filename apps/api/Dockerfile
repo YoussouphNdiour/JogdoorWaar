@@ -21,8 +21,8 @@ RUN npx turbo run build --filter=@jdw/shared-types --filter=@jdw/config
 # 2. Generate Prisma client
 RUN cd apps/api && npx prisma generate
 
-# 3. Compile NestJS → dist/
-RUN cd apps/api && npm run build
+# 3. Compile NestJS → dist/  (bypass nest-cli to avoid deleteOutDir confusion)
+RUN cd apps/api && npx tsc --project tsconfig.json
 
 # Guard: confirm main.js was produced
 RUN ls apps/api/dist/main.js
