@@ -1,6 +1,9 @@
 FROM node:20-slim
 WORKDIR /app
 
+# Install OpenSSL for Prisma engine binaries
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
 # ─── Workspace setup (cached until any package.json changes) ──────────────────
 COPY package*.json turbo.json tsconfig.base.json ./
 COPY apps/api/package*.json     ./apps/api/
