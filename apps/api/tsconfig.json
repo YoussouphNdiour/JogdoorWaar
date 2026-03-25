@@ -7,7 +7,7 @@
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "target": "ES2021",
-    "outDir": "./dist",
+    "outDir": "./.api-dist",
     "baseUrl": "./",
     "incremental": true,
     "strictNullChecks": false,
