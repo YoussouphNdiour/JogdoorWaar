@@ -10,7 +10,7 @@ COPY packages/config/package*.json       ./packages/config/
 COPY packages/ui/package*.json           ./packages/ui/
 
 # Install all deps (devDeps required for TypeScript build)
-RUN npm ci --include=dev
+RUN npm install --include=dev
 
 # ─── Source + build (cached until source changes) ─────────────────────────────
 COPY . .
