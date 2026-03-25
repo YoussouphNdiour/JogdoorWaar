@@ -25,15 +25,12 @@ services:
   # ─── 2. API (NestJS) ───────────────────────────────────────────────────────
   - type: web
     name: jdw-api
-    runtime: node
+    runtime: docker
+    dockerfilePath: apps/api/Dockerfile
+    dockerContext: .
     plan: standard
     region: frankfurt
     branch: main
-    buildCommand: >
-      npm install --include=dev &&
-      npx turbo run build --filter=@jdw/shared-types --filter=@jdw/config &&
-      cd apps/api && npx prisma generate && npm run build && ls server-dist/main.js
-    startCommand: cd apps/api && npx prisma db push --skip-generate --accept-data-loss && node server-dist/main.js
     healthCheckPath: /health
     autoDeploy: false
     envVars:
@@ -122,15 +119,13 @@ services:
   # ─── 3. Scraping Worker ────────────────────────────────────────────────────
   - type: worker
     name: jdw-scrapers
-    runtime: node
+    runtime: docker
+    dockerfilePath: apps/api/Dockerfile
+    dockerContext: .
+    dockerCommand: sh -c "cd apps/api && node server-dist/worker.js"
     plan: starter
     region: frankfurt
     branch: main
-    buildCommand: >
-      npm install --include=dev &&
-      npx turbo run build --filter=@jdw/shared-types --filter=@jdw/config &&
-      cd apps/api && npx prisma generate && npm run build && ls server-dist/worker.js
-    startCommand: cd apps/api && node server-dist/worker.js
     autoDeploy: false
     envVars:
       - key: DATABASE_URL
