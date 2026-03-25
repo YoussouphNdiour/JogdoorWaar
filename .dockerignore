@@ -6,6 +6,5 @@ coverage
 .env
 .env.*
 apps/api/server-dist
-apps/api/dist
 apps/web/.next
 apps/web/node_modules

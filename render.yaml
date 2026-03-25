@@ -122,7 +122,7 @@ services:
     runtime: docker
     dockerfilePath: apps/api/Dockerfile
     dockerContext: .
-    dockerCommand: sh -c "cd apps/api && node server-dist/worker.js"
+    dockerCommand: sh -c "cd apps/api && node dist/worker.js"
     plan: starter
     region: frankfurt
     branch: main

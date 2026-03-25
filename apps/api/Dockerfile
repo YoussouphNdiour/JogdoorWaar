@@ -21,13 +21,13 @@ RUN npx turbo run build --filter=@jdw/shared-types --filter=@jdw/config
 # 2. Generate Prisma client
 RUN cd apps/api && npx prisma generate
 
-# 3. Compile NestJS → server-dist/
+# 3. Compile NestJS → dist/
 RUN cd apps/api && npm run build
 
-# Guard: fail the build if the output wasn't produced
-RUN ls apps/api/server-dist/main.js
+# Guard: confirm main.js was produced
+RUN ls apps/api/dist/main.js
 
 EXPOSE 3001
 
 # Run DB migrations, then start the API
-CMD ["sh", "-c", "cd apps/api && npx prisma db push --skip-generate --accept-data-loss && node server-dist/main.js"]
+CMD ["sh", "-c", "cd apps/api && npx prisma db push --skip-generate --accept-data-loss && node dist/main.js"]
