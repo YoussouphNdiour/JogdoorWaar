@@ -103,7 +103,7 @@ export default function LoginPage() {
           </div>
 
           <a
-            href="/api/auth/google"
+            href={`${process.env.NEXT_PUBLIC_API_URL ?? 'https://jdw-api-ubi5.onrender.com'}/auth/google`}
             className="w-full flex items-center justify-center gap-3 border border-sand-dark py-3 rounded-xl font-dm text-sm text-savane hover:bg-sand-dark transition-colors"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
