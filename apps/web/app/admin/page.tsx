@@ -6,6 +6,7 @@ import {
   getAdminUsers,
   getAdminJobs,
   getAdminScrapingStats,
+  triggerScraper,
   updateAdminUser,
   updateAdminJob,
   type AdminUser,
@@ -532,15 +533,19 @@ function ScrapingTab() {
       .catch(console.error);
   }, []);
 
-  function triggerScraping(id: string) {
+  async function triggerScraping(id: string) {
     setRunning((prev) => new Set(prev).add(id));
-    setTimeout(() => {
+    try {
+      await triggerScraper(id);
+    } catch (e) {
+      console.error(e);
+    } finally {
       setRunning((prev) => {
         const next = new Set(prev);
         next.delete(id);
         return next;
       });
-    }, 3000);
+    }
   }
 
   const statusLabels: Record<ScrapingSource['status'], string> = {
@@ -756,8 +761,21 @@ function RevenueTab() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+function useAdminUser() {
+  if (typeof window === 'undefined') return { name: 'Admin', initials: 'A' };
+  try {
+    const u = JSON.parse(localStorage.getItem('user') ?? '{}');
+    const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email?.split('@')[0] || 'Admin';
+    const initials = name.split(' ').map((w: string) => w[0]?.toUpperCase() ?? '').slice(0, 2).join('');
+    return { name, initials };
+  } catch {
+    return { name: 'Admin', initials: 'A' };
+  }
+}
+
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
+  const adminUser = useAdminUser();
 
   const TAB_TITLES: Record<AdminTab, string> = {
     dashboard: 'Vue d\'ensemble',
@@ -806,10 +824,10 @@ export default function AdminPage() {
         <div className="px-3 pb-4">
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5">
             <div className="w-7 h-7 rounded-full bg-[#E8580A]/30 flex items-center justify-center flex-shrink-0">
-              <span className="font-syne text-[10px] font-bold text-[#E8580A]">CG</span>
+              <span className="font-syne text-[10px] font-bold text-[#E8580A]">{adminUser.initials}</span>
             </div>
             <div className="min-w-0">
-              <p className="font-dm text-white text-xs font-medium truncate">Cheikh Gueye</p>
+              <p className="font-dm text-white text-xs font-medium truncate">{adminUser.name}</p>
               <p className="font-dm text-white/40 text-[9px]">Super Admin</p>
             </div>
           </div>

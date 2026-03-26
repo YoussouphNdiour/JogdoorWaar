@@ -151,5 +151,16 @@ export function deleteAdminJob(id: string): Promise<void> {
 // ─── Scraping ─────────────────────────────────────────────────────────────────
 
 export function getAdminScrapingStats(): Promise<ScrapingStats[]> {
-  return apiFetch<ScrapingStats[]>('/admin/scraping/stats');
+  return apiFetch<ScrapingStats[]>('/admin/scrapers');
+}
+
+export function triggerScraper(platform: string): Promise<void> {
+  return apiFetch<void>(`/admin/scrapers/${platform}/run`, { method: 'POST' });
+}
+
+export function toggleScraper(platform: string, enabled: boolean): Promise<void> {
+  return apiFetch<void>(`/admin/scrapers/${platform}/toggle`, {
+    method: 'PATCH',
+    body: JSON.stringify({ enabled }),
+  });
 }
