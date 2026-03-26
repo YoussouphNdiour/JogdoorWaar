@@ -83,8 +83,8 @@ export class OrangeMoneyService {
       return this.cachedToken;
     }
 
-    const clientId = this.config.getOrThrow<string>('ORANGE_MONEY_API_KEY');
-    const clientSecret = this.config.getOrThrow<string>('ORANGE_MONEY_MERCHANT_KEY');
+    const clientId = this.config.getOrThrow<string>('ORANGE_MONEY_CLIENT_ID');
+    const clientSecret = this.config.getOrThrow<string>('ORANGE_MONEY_CLIENT_SECRET');
 
     const body = new URLSearchParams({
       client_id: clientId,
