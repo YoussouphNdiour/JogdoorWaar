@@ -190,9 +190,10 @@ export default function LandingPage() {
                 period: 'FCFA/mois',
                 features: ['10 offres/mois', 'Analytics candidatures', 'Accès candidats', 'Boost offres', 'Support prioritaire'],
                 cta: 'Recruter maintenant',
+                href: '/auth/register-recruiter',
                 highlight: false,
               },
-            ].map(({ name, price, period, features, cta, highlight }) => (
+            ].map(({ name, price, period, features, cta, href, highlight }) => (
               <div
                 key={name}
                 className={`rounded-3xl p-8 ${
@@ -223,7 +224,7 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <Link
-                  href="/auth/register"
+                  href={href ?? '/auth/register'}
                   className={`block text-center py-3 rounded-xl font-dm font-semibold transition-colors ${
                     highlight
                       ? 'bg-white text-terracotta hover:bg-sand'

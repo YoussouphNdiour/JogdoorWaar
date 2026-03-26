@@ -164,3 +164,16 @@ export function toggleScraper(platform: string, enabled: boolean): Promise<void>
     body: JSON.stringify({ enabled }),
   });
 }
+
+// ─── Revenue ──────────────────────────────────────────────────────────────────
+
+export interface RevenueMonth {
+  month: string;
+  premium: number;
+  recruiter: number;
+  total: number;
+}
+
+export function getAdminRevenue(): Promise<RevenueMonth[]> {
+  return apiFetch<RevenueMonth[]>('/admin/subscriptions/revenue');
+}

@@ -15,6 +15,18 @@ export default function RecruiterLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
 
+  // Role guard — redirect non-recruiters away
+  if (typeof window !== 'undefined') {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') ?? '{}');
+      if (!user.role || (user.role !== 'RECRUITER' && user.role !== 'ADMIN' && user.role !== 'SUPERADMIN')) {
+        router.replace('/auth/login');
+      }
+    } catch {
+      router.replace('/auth/login');
+    }
+  }
+
   const handleLogout = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');

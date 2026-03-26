@@ -6,6 +6,7 @@ import {
   getAdminUsers,
   getAdminJobs,
   getAdminScrapingStats,
+  getAdminRevenue,
   triggerScraper,
   updateAdminUser,
   updateAdminJob,
@@ -13,6 +14,7 @@ import {
   type AdminJob,
   type ScrapingStats,
   type PlatformStats,
+  type RevenueMonth,
   type UserPlan,
   type UserRole,
 } from '@/lib/api/admin';
@@ -691,39 +693,61 @@ const NAV_ITEMS: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
   },
 ];
 
-// ─── Revenue tab (simple) ─────────────────────────────────────────────────────
+// ─── Revenue tab ──────────────────────────────────────────────────────────────
 
 function RevenueTab() {
-  const monthlyRevenue = [
-    { month: 'Octobre 2025', premium: 28, recruiter: 4, total: 45000 },
-    { month: 'Novembre 2025', premium: 41, recruiter: 8, total: 87500 },
-    { month: 'Décembre 2025', premium: 58, recruiter: 11, total: 122000 },
-    { month: 'Janvier 2026', premium: 47, recruiter: 9, total: 98000 },
-    { month: 'Février 2026', premium: 68, recruiter: 13, total: 143500 },
-    { month: 'Mars 2026', premium: 89, recruiter: 16, total: 189000 },
-  ];
+  const [rows, setRows] = useState<RevenueMonth[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const totalRevenue = monthlyRevenue.reduce((s, m) => s + m.total, 0);
+  useEffect(() => {
+    getAdminRevenue()
+      .then(setRows)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const totalRevenue = rows.reduce((s, m) => s + m.total, 0);
+  const lastMonth = rows[rows.length - 1];
+  const prevMonth = rows[rows.length - 2];
+
+  if (loading) {
+    return (
+      <div className="animate-pulse space-y-4">
+        <div className="grid grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => <div key={i} className="h-24 bg-gray-100 rounded-2xl" />)}
+        </div>
+        <div className="h-64 bg-gray-100 rounded-2xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <p className="font-dm text-xs text-gray-400 mb-1">Revenu total (6 mois)</p>
+          <p className="font-dm text-xs text-gray-400 mb-1">Revenu total ({rows.length} mois)</p>
           <p className="font-syne text-2xl font-black text-[#E8580A]">
-            {totalRevenue.toLocaleString('fr-FR')} FCFA
+            {rows.length ? `${totalRevenue.toLocaleString('fr-FR')} FCFA` : '—'}
           </p>
         </div>
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <p className="font-dm text-xs text-gray-400 mb-1">Abonnés Premium actifs</p>
-          <p className="font-syne text-2xl font-black text-[#1B4332]">89</p>
-          <p className="font-dm text-[10px] text-green-600 font-semibold mt-1">+21 ce mois</p>
+          <p className="font-dm text-xs text-gray-400 mb-1">Abonnés Premium (ce mois)</p>
+          <p className="font-syne text-2xl font-black text-[#1B4332]">{lastMonth?.premium ?? '—'}</p>
+          {lastMonth && prevMonth && lastMonth.premium !== prevMonth.premium && (
+            <p className={`font-dm text-[10px] font-semibold mt-1 ${lastMonth.premium > prevMonth.premium ? 'text-green-600' : 'text-red-500'}`}>
+              {lastMonth.premium > prevMonth.premium ? '+' : ''}{lastMonth.premium - prevMonth.premium} vs mois précédent
+            </p>
+          )}
         </div>
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <p className="font-dm text-xs text-gray-400 mb-1">Abonnés Recruteur actifs</p>
-          <p className="font-syne text-2xl font-black text-[#1B4332]">16</p>
-          <p className="font-dm text-[10px] text-green-600 font-semibold mt-1">+3 ce mois</p>
+          <p className="font-dm text-xs text-gray-400 mb-1">Abonnés Recruteur (ce mois)</p>
+          <p className="font-syne text-2xl font-black text-[#1B4332]">{lastMonth?.recruiter ?? '—'}</p>
+          {lastMonth && prevMonth && lastMonth.recruiter !== prevMonth.recruiter && (
+            <p className={`font-dm text-[10px] font-semibold mt-1 ${lastMonth.recruiter > prevMonth.recruiter ? 'text-green-600' : 'text-red-500'}`}>
+              {lastMonth.recruiter > prevMonth.recruiter ? '+' : ''}{lastMonth.recruiter - prevMonth.recruiter} vs mois précédent
+            </p>
+          )}
         </div>
       </div>
 
@@ -732,28 +756,32 @@ function RevenueTab() {
         <div className="px-5 py-4 border-b border-gray-100">
           <h3 className="font-syne font-bold text-[#1B4332]">Détail mensuel</h3>
         </div>
-        <table className="w-full">
-          <thead>
-            <tr className="bg-[#FDFAF6] border-b border-gray-100">
-              <th className="text-left font-dm text-xs font-semibold text-gray-500 px-5 py-3">Mois</th>
-              <th className="text-right font-dm text-xs font-semibold text-gray-500 px-4 py-3">Premium</th>
-              <th className="text-right font-dm text-xs font-semibold text-gray-500 px-4 py-3">Recruteur</th>
-              <th className="text-right font-dm text-xs font-semibold text-gray-500 px-5 py-3">Total</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {monthlyRevenue.map((row, i) => (
-              <tr key={i} className={`hover:bg-[#FDFAF6] transition-colors ${i === monthlyRevenue.length - 1 ? 'bg-[#E8580A]/5' : ''}`}>
-                <td className="px-5 py-3 font-dm text-sm text-[#1B4332] font-medium">{row.month}</td>
-                <td className="px-4 py-3 text-right font-dm text-sm text-gray-600">{row.premium} abonnés</td>
-                <td className="px-4 py-3 text-right font-dm text-sm text-gray-600">{row.recruiter} abonnés</td>
-                <td className="px-5 py-3 text-right font-syne font-black text-[#E8580A] text-sm">
-                  {row.total.toLocaleString('fr-FR')} FCFA
-                </td>
+        {rows.length === 0 ? (
+          <div className="px-5 py-10 text-center font-dm text-sm text-gray-400">Aucune donnée disponible.</div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="bg-[#FDFAF6] border-b border-gray-100">
+                <th className="text-left font-dm text-xs font-semibold text-gray-500 px-5 py-3">Mois</th>
+                <th className="text-right font-dm text-xs font-semibold text-gray-500 px-4 py-3">Premium</th>
+                <th className="text-right font-dm text-xs font-semibold text-gray-500 px-4 py-3">Recruteur</th>
+                <th className="text-right font-dm text-xs font-semibold text-gray-500 px-5 py-3">Total</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {rows.map((row, i) => (
+                <tr key={i} className={`hover:bg-[#FDFAF6] transition-colors ${i === rows.length - 1 ? 'bg-[#E8580A]/5' : ''}`}>
+                  <td className="px-5 py-3 font-dm text-sm text-[#1B4332] font-medium">{row.month}</td>
+                  <td className="px-4 py-3 text-right font-dm text-sm text-gray-600">{row.premium} abonnés</td>
+                  <td className="px-4 py-3 text-right font-dm text-sm text-gray-600">{row.recruiter} abonnés</td>
+                  <td className="px-5 py-3 text-right font-syne font-black text-[#E8580A] text-sm">
+                    {row.total.toLocaleString('fr-FR')} FCFA
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

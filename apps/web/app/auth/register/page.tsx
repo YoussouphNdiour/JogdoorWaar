@@ -61,6 +61,12 @@ export default function RegisterPage() {
                 Se connecter
               </Link>
             </p>
+            <p className="font-dm text-sm text-savane/60 mt-1">
+              Vous recrutez ?{' '}
+              <Link href="/auth/register-recruiter" className="text-savane font-semibold hover:underline">
+                Créer un compte recruteur
+              </Link>
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

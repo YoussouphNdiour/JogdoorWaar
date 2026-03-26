@@ -24,7 +24,14 @@ export default function LoginPage() {
       });
       localStorage.setItem('access_token', data.access_token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      router.push('/candidate/dashboard');
+      const user = data.user as { role?: string };
+      if (user.role === 'ADMIN' || user.role === 'SUPERADMIN') {
+        router.push('/admin');
+      } else if (user.role === 'RECRUITER') {
+        router.push('/recruiter/dashboard');
+      } else {
+        router.push('/candidate/dashboard');
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Email ou mot de passe incorrect.');
     } finally {
