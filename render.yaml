@@ -87,9 +87,9 @@ services:
         sync: false
       - key: WAVE_WEBHOOK_SECRET
         generateValue: true
-      - key: ORANGE_MONEY_API_KEY       # OAuth2 client_id
+      - key: ORANGE_MONEY_CLIENT_ID       # OAuth2 client_id
         sync: false
-      - key: ORANGE_MONEY_MERCHANT_KEY  # OAuth2 client_secret
+      - key: ORANGE_MONEY_CLIENT_SECRET  # OAuth2 client_secret
         sync: false
       - key: ORANGE_MONEY_MERCHANT_CODE # 6-digit merchant code
         sync: false
@@ -122,7 +122,7 @@ services:
     runtime: docker
     dockerfilePath: apps/api/Dockerfile
     dockerContext: .
-    dockerCommand: sh -c "cd apps/api && node dist/worker.js"
+    dockerCommand: node /app/apps/api/dist/worker.js
     plan: starter
     region: frankfurt
     branch: main
