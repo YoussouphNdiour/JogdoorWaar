@@ -15,6 +15,7 @@ import { Profile } from 'passport-google-oauth20';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 
 // ─── AES-256-GCM helpers ──────────────────────────────────────────────────────
@@ -144,6 +145,7 @@ export class AuthService {
         lastName: dto.lastName.trim(),
         passwordHash,
         phone: encryptedPhone,
+        role: (dto.role as unknown as import('@prisma/client').UserRole) ?? 'CANDIDATE',
         profile: {
           create: {
             city: 'Dakar',
@@ -440,6 +442,24 @@ export class AuthService {
     if (!user) {
       throw new NotFoundException('Utilisateur introuvable');
     }
+
+    return this.toSafeUser(user);
+  }
+
+  // ─── Update profile ───────────────────────────────────────────────────────
+
+  async updateMe(userId: string, dto: UpdateProfileDto): Promise<SafeUser> {
+    const encryptedPhone = dto.phone ? encryptField(dto.phone) : undefined;
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(dto.firstName !== undefined && { firstName: dto.firstName.trim() }),
+        ...(dto.lastName !== undefined && { lastName: dto.lastName.trim() }),
+        ...(encryptedPhone !== undefined && { phone: encryptedPhone }),
+        ...(dto.avatarUrl !== undefined && { avatarUrl: dto.avatarUrl }),
+      },
+    });
 
     return this.toSafeUser(user);
   }

@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Patch,
+  Post,
   Delete,
   Param,
   Query,
@@ -9,10 +10,9 @@ import {
   UseGuards,
   ParseIntPipe,
   DefaultValuePipe,
-  ParseBoolPipe,
   HttpCode,
   HttpStatus,
-  Optional,
+  Logger,
 } from '@nestjs/common';
 import { UserRole } from '@jdw/shared-types';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -25,6 +25,8 @@ import { UpdateJobDto } from './dto/update-job.dto';
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AdminController {
+  private readonly logger = new Logger(AdminController.name);
+
   constructor(private readonly adminService: AdminService) {}
 
   // ─── Platform stats ───────────────────────────────────────────────────────────
@@ -121,5 +123,56 @@ export class AdminController {
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
   getScrapingStats() {
     return this.adminService.getScrapingStats();
+  }
+
+  // ─── Scrapers (aliases + management) ─────────────────────────────────────────
+
+  /**
+   * GET /admin/scrapers
+   * Alias of GET /admin/scraping/stats — kept for API compat.
+   */
+  @Get('scrapers')
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  getScrapers() {
+    return this.adminService.getScrapers();
+  }
+
+  /**
+   * POST /admin/scrapers/:platform/run
+   * Queue a manual scraper run for the given platform.
+   */
+  @Post('scrapers/:platform/run')
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  runScraper(@Param('platform') platform: string): { queued: boolean } {
+    this.logger.log(`Manual scraper run requested for platform: ${platform}`);
+    // TODO (Sprint 4): dispatch a BullMQ job to the scraping queue
+    return { queued: true };
+  }
+
+  /**
+   * PATCH /admin/scrapers/:platform/toggle
+   * Toggle a scraper's enabled/disabled state.
+   */
+  @Patch('scrapers/:platform/toggle')
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  toggleScraper(
+    @Param('platform') platform: string,
+    @Body('enabled') enabled: boolean,
+  ): { platform: string; enabled: boolean } {
+    this.logger.log(`Scraper toggle: platform=${platform} enabled=${enabled}`);
+    // TODO (Sprint 4): persist scraper config in a ScraperConfig table
+    return { platform, enabled };
+  }
+
+  // ─── Subscriptions revenue ────────────────────────────────────────────────────
+
+  /**
+   * GET /admin/subscriptions/revenue
+   * Monthly revenue breakdown for the last 6 months.
+   */
+  @Get('subscriptions/revenue')
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  getMonthlyRevenue() {
+    return this.adminService.getMonthlyRevenue();
   }
 }

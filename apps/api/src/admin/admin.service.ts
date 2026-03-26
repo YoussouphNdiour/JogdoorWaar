@@ -219,4 +219,50 @@ export class AdminService {
       lastScraped: row._max.scrapedAt ?? null,
     }));
   }
+
+  /** Alias of getScrapingStats — used by GET /admin/scrapers */
+  async getScrapers(): Promise<
+    { platform: string; total: number; lastScraped: Date | null }[]
+  > {
+    return this.getScrapingStats();
+  }
+
+  // ─── Revenue ──────────────────────────────────────────────────────────────────
+
+  async getMonthlyRevenue(): Promise<
+    { month: string; premium: number; recruiter: number; total: number }[]
+  > {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const subscriptions = await this.prisma.subscription.findMany({
+      where: { createdAt: { gte: sixMonthsAgo } },
+      orderBy: { createdAt: 'asc' },
+      select: { plan: true, createdAt: true },
+    });
+
+    // Group by year-month
+    const grouped: Record<string, { premium: number; recruiter: number }> = {};
+
+    for (const sub of subscriptions) {
+      const month = sub.createdAt.toISOString().slice(0, 7); // e.g. "2025-03"
+      if (!grouped[month]) {
+        grouped[month] = { premium: 0, recruiter: 0 };
+      }
+      if (sub.plan === Plan.PREMIUM) {
+        grouped[month].premium += 1;
+      } else if (sub.plan === Plan.RECRUITER) {
+        grouped[month].recruiter += 1;
+      }
+    }
+
+    return Object.entries(grouped).map(([month, counts]) => ({
+      month,
+      premium: counts.premium,
+      recruiter: counts.recruiter,
+      total:
+        counts.premium * PLAN_PRICE_FCFA['PREMIUM'] +
+        counts.recruiter * PLAN_PRICE_FCFA['RECRUITER'],
+    }));
+  }
 }

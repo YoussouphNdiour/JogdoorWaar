@@ -18,11 +18,11 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const data = await apiFetch<{ access_token: string; user: unknown }>('/auth/login', {
+      const data = await apiFetch<{ accessToken: string; user: unknown }>('/auth/login', {
         method: 'POST',
         body: JSON.stringify(form),
       });
-      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('access_token', data.accessToken);
       localStorage.setItem('user', JSON.stringify(data.user));
       const user = data.user as { role?: string };
       if (user.role === 'ADMIN' || user.role === 'SUPERADMIN') {

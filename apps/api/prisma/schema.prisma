@@ -42,6 +42,7 @@ model User {
   aiUsageLogs      AiUsageLog[]
   whatsappSessions WhatsAppSession[]
   matchScores      MatchScore[]
+  recruiterJobs    Job[]    @relation("RecruiterJobs")
 }
 
 model UserProfile {
@@ -153,6 +154,8 @@ model Job {
   expiresAt          DateTime?
   scrapedAt          DateTime                   @default(now())
   isActive           Boolean                    @default(true)
+  recruiterId        String?
+  recruiter          User?                      @relation("RecruiterJobs", fields: [recruiterId], references: [id])
   isVerified         Boolean                    @default(false)
   isPremium          Boolean                    @default(false)
   viewCount          Int                        @default(0)
@@ -224,6 +227,7 @@ model Application {
   status               ApplicationStatus  @default(TO_APPLY)
   appliedAt            DateTime?
   appliedVia           ApplicationChannel @default(WEB)
+  recruiterStatus      RecruiterApplicationStatus @default(PENDING)
   notes                String?            @db.Text
   generatedCoverLetter String?            @db.Text
   interviewDate        DateTime?
@@ -363,6 +367,13 @@ enum ApplicationStatus {
 enum ApplicationChannel {
   WEB
   WHATSAPP
+}
+
+enum RecruiterApplicationStatus {
+  PENDING
+  REVIEWED
+  SHORTLISTED
+  REJECTED
 }
 
 enum NotificationType {

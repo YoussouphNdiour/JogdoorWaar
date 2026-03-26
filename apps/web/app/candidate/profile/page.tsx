@@ -43,7 +43,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     Promise.all([
-      apiFetch<UserProfile>('/users/me'),
+      apiFetch<UserProfile>('/auth/me'),
       apiFetch<CvFile[]>('/cvs'),
     ]).then(([prof, cvList]) => {
       setProfile(prof);
@@ -90,7 +90,7 @@ export default function ProfilePage() {
   }
 
   async function handleSetPrimary(cvId: string) {
-    await apiFetch(`/cvs/${cvId}/primary`, { method: 'PATCH' }).catch(() => {});
+    await apiFetch(`/cvs/${cvId}/set-default`, { method: 'PATCH' }).catch(() => {});
     setCvs((prev) => prev.map((c) => ({ ...c, isPrimary: c.id === cvId })));
   }
 
@@ -103,7 +103,7 @@ export default function ProfilePage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await apiFetch('/users/me', { method: 'PATCH', body: JSON.stringify(form) });
+      await apiFetch('/auth/me', { method: 'PATCH', body: JSON.stringify(form) });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch {

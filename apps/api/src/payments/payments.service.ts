@@ -360,4 +360,14 @@ export class PaymentsService {
 
     this.logger.log(`Subscription cancelled for user=${userId}`);
   }
+
+  /**
+   * Retrieve all subscriptions (invoices) for a user, ordered by most recent.
+   */
+  async getInvoices(userId: string): Promise<Subscription[]> {
+    return this.prisma.subscription.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }

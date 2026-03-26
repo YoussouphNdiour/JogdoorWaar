@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Patch,
   Post,
   Req,
   Res,
@@ -26,6 +27,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
@@ -213,6 +215,21 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Non authentifié' })
   async me(@CurrentUser() user: JwtPayload): Promise<SafeUser> {
     return this.authService.findById(user.sub);
+  }
+
+  // ─── Update current user ──────────────────────────────────────────────────
+
+  @Patch('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Met à jour le profil de l'utilisateur connecté" })
+  @ApiResponse({ status: 200, description: 'Profil mis à jour' })
+  @ApiResponse({ status: 401, description: 'Non authentifié' })
+  async updateMe(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: UpdateProfileDto,
+  ): Promise<SafeUser> {
+    return this.authService.updateMe(user.sub, dto);
   }
 
   // ─── Google OAuth ─────────────────────────────────────────────────────────

@@ -28,11 +28,11 @@ export default function RegisterRecruiterPage() {
     }
     setLoading(true);
     try {
-      const data = await apiFetch<{ access_token: string; user: unknown }>('/auth/register', {
+      const data = await apiFetch<{ accessToken: string; user: unknown }>('/auth/register', {
         method: 'POST',
         body: JSON.stringify({ ...form, role: 'RECRUITER' }),
       });
-      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('access_token', data.accessToken);
       localStorage.setItem('user', JSON.stringify(data.user));
       router.push('/recruiter/dashboard');
     } catch (err: unknown) {

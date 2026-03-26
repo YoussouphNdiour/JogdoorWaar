@@ -16,6 +16,8 @@ import { ScrapingModule } from './scraping/scraping.module';
 import { WhatsAppModule } from './whatsapp/whatsapp.module';
 import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
+import { ApplicationsModule } from './applications/applications.module';
+import { RecruiterModule } from './recruiter/recruiter.module';
 
 @Module({
   imports: [
@@ -57,6 +59,8 @@ import { AdminModule } from './admin/admin.module';
     WhatsAppModule,
     PaymentsModule,
     AdminModule,
+    ApplicationsModule,
+    RecruiterModule,
   ],
   controllers: [AppController],
   providers: [AppService],

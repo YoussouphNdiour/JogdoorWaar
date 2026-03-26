@@ -72,6 +72,17 @@ export class PaymentsController {
     return this.paymentsService.cancelSubscription(user.sub);
   }
 
+  @Get('invoices')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all invoices (subscription history) for the current user' })
+  @ApiResponse({ status: 200, description: 'List of subscription records' })
+  async getInvoices(
+    @CurrentUser() user: JwtPayload,
+  ): Promise<Subscription[]> {
+    return this.paymentsService.getInvoices(user.sub);
+  }
+
   // ---------------------------------------------------------------------------
   // Webhook routes — public, verified by HMAC signature inside service
   // ---------------------------------------------------------------------------

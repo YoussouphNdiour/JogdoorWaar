@@ -397,7 +397,7 @@ export default function BillingPage() {
 
   useEffect(() => {
     Promise.all([
-      apiFetch<{ plan: Plan }>('/users/me').then((u) => setCurrentPlan(u.plan)),
+      apiFetch<{ plan: Plan }>('/auth/me').then((u) => setCurrentPlan(u.plan)),
       apiFetch<Invoice[]>('/payments/invoices').then(setInvoices),
     ])
       .catch(() => {})

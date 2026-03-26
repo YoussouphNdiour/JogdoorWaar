@@ -1,11 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEmail,
+  IsEnum,
   IsOptional,
   IsPhoneNumber,
   IsString,
   MinLength,
 } from 'class-validator';
+import { UserRole } from '@jdw/shared-types';
 
 export class RegisterDto {
   @ApiProperty({ example: 'amadou.diallo@example.sn' })
@@ -31,4 +33,9 @@ export class RegisterDto {
   @IsPhoneNumber()
   @IsOptional()
   phone?: string;
+
+  @ApiPropertyOptional({ enum: UserRole, default: UserRole.CANDIDATE })
+  @IsEnum(UserRole)
+  @IsOptional()
+  role?: UserRole;
 }
