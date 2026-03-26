@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '../../../lib/api/client';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -114,19 +115,30 @@ function PaymentModal({
   const [method, setMethod] = useState<PaymentMethod | null>(null);
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
+  const [payError, setPayError] = useState('');
 
   const price = plan === 'PREMIUM' ? 3500 : 15000;
   const planLabel = plan === 'PREMIUM' ? 'Premium' : 'Recruteur';
 
-  function handleConfirm() {
+  async function handleConfirm() {
     if (!method) return;
+    setPayError('');
     setLoading(true);
-    // Mock: log instead of real API call
-    console.log('POST /api/payments/initiate', { plan, method, phone: phone || undefined });
-    setTimeout(() => {
+    try {
+      const result = await apiFetch<{ redirectUrl?: string; status: string }>('/payments/initiate', {
+        method: 'POST',
+        body: JSON.stringify({ plan, method, phone: phone || undefined }),
+      });
+      if (result.redirectUrl) {
+        window.location.href = result.redirectUrl;
+      } else {
+        onClose();
+      }
+    } catch (err: unknown) {
+      setPayError(err instanceof Error ? err.message : 'Erreur de paiement.');
+    } finally {
       setLoading(false);
-      onClose();
-    }, 1500);
+    }
   }
 
   return (
@@ -232,6 +244,13 @@ function PaymentModal({
             </div>
             <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${method === 'STRIPE' ? 'border-white bg-white' : 'border-gray-300'}`} />
           </button>
+
+          {/* Payment error */}
+          {payError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 font-dm text-sm">
+              {payError}
+            </div>
+          )}
 
           {/* Confirm button */}
           <button

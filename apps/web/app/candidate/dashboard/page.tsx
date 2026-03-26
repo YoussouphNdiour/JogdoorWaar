@@ -44,7 +44,7 @@ export default function DashboardPage() {
         <div className="md:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-syne text-lg font-bold text-savane">Recommandées pour vous</h2>
-            <Link href="/jobs" className="font-dm text-sm text-terracotta hover:underline flex items-center gap-1">
+            <Link href="/candidate/jobs" className="font-dm text-sm text-terracotta hover:underline flex items-center gap-1">
               Voir tout <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
@@ -52,7 +52,7 @@ export default function DashboardPage() {
             {RECENT_JOBS.map((job) => (
               <div key={job.id} className="bg-white rounded-2xl border border-sand-dark p-4 flex items-center justify-between gap-4 hover:border-terracotta/20 transition-colors">
                 <div className="flex-1 min-w-0">
-                  <Link href={`/jobs/${job.id}`}>
+                  <Link href={`/candidate/jobs/${job.id}`}>
                     <h3 className="font-dm font-medium text-savane hover:text-terracotta transition-colors truncate">
                       {job.title}
                     </h3>
@@ -85,7 +85,7 @@ export default function DashboardPage() {
             </div>
             <p className="font-dm text-xs text-white/60 mb-4">60% complété</p>
             <Link
-              href="/profile"
+              href="/candidate/profile"
               className="block text-center bg-white text-savane py-2 rounded-xl font-dm text-sm font-medium hover:bg-sand transition-colors"
             >
               Compléter →
@@ -96,9 +96,9 @@ export default function DashboardPage() {
           <div className="bg-white rounded-2xl border border-sand-dark p-5 space-y-3">
             <h3 className="font-syne font-bold text-savane text-sm">Actions rapides</h3>
             {[
-              { label: 'Uploader un CV', href: '/profile/cvs', icon: FileText },
-              { label: 'Créer une alerte', href: '/alerts', icon: Bell },
-              { label: 'Mes candidatures', href: '/applications', icon: Briefcase },
+              { label: 'Uploader un CV', href: '/candidate/profile', icon: FileText },
+              { label: 'Créer une alerte', href: '/candidate/alerts', icon: Bell },
+              { label: 'Mes candidatures', href: '/candidate/applications', icon: Briefcase },
             ].map(({ label, href, icon: Icon }) => (
               <Link
                 key={label}
@@ -121,7 +121,7 @@ export default function DashboardPage() {
               Candidatures WhatsApp, CVs illimités, coach entretien IA.
             </p>
             <Link
-              href="/upgrade"
+              href="/candidate/billing"
               className="block text-center bg-terracotta text-white py-2 rounded-xl font-dm text-sm font-medium hover:bg-terracotta-600 transition-colors"
             >
               3 500 FCFA/mois →

@@ -2,18 +2,34 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { apiFetch } from '../../../lib/api/client';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [form, setForm] = useState({ email: '', password: '' });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
-    // TODO: call API /auth/login
-    setTimeout(() => setLoading(false), 1000);
+    try {
+      const data = await apiFetch<{ access_token: string; user: unknown }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(form),
+      });
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      router.push('/candidate/dashboard');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Email ou mot de passe incorrect.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -80,6 +96,12 @@ export default function LoginPage() {
                 </Link>
               </div>
             </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 font-dm text-sm">
+                {error}
+              </div>
+            )}
 
             <button
               type="submit"

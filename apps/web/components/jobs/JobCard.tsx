@@ -78,7 +78,7 @@ export function JobCard({ job, isSaved, onSave, className }: JobCardProps) {
           </div>
 
           <div className="flex-1 min-w-0">
-            <Link href={`/jobs/${job.id}`}>
+            <Link href={`/candidate/jobs/${job.id}`}>
               <h3 className="font-dm font-semibold text-savane line-clamp-2 group-hover:text-terracotta transition-colors">
                 {job.title}
               </h3>
@@ -157,7 +157,7 @@ export function JobCard({ job, isSaved, onSave, className }: JobCardProps) {
           {timeAgo(job.publishedAt)}
         </span>
         <Link
-          href={`/jobs/${job.id}`}
+          href={`/candidate/jobs/${job.id}`}
           className="text-xs font-dm font-medium text-terracotta hover:underline"
         >
           Voir l'offre →

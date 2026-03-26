@@ -2,11 +2,15 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { apiFetch } from '../../../lib/api/client';
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -16,9 +20,25 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    if (form.password.length < 8) {
+      setError('Le mot de passe doit contenir au moins 8 caractères.');
+      return;
+    }
     setLoading(true);
-    // TODO: call API /auth/register
-    setTimeout(() => setLoading(false), 1000);
+    try {
+      const data = await apiFetch<{ access_token: string; user: unknown }>('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ ...form, role: 'CANDIDATE' }),
+      });
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      router.push('/candidate/dashboard');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de l\'inscription.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -102,6 +122,12 @@ export default function RegisterPage() {
                 </button>
               </div>
             </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 font-dm text-sm">
+                {error}
+              </div>
+            )}
 
             <button
               type="submit"

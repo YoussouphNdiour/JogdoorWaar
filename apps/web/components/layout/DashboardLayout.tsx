@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Briefcase,
@@ -15,16 +15,23 @@ import {
 import { cn } from '@jdw/ui';
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/jobs', label: 'Offres', icon: Briefcase },
-  { href: '/profile/cvs', label: 'Mes CVs', icon: FileText },
-  { href: '/alerts', label: 'Alertes', icon: Bell },
-  { href: '/applications', label: 'Candidatures', icon: ClipboardList },
-  { href: '/profile', label: 'Profil', icon: User },
+  { href: '/candidate/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/candidate/jobs', label: 'Offres', icon: Briefcase },
+  { href: '/candidate/profile', label: 'Mes CVs', icon: FileText },
+  { href: '/candidate/alerts', label: 'Alertes', icon: Bell },
+  { href: '/candidate/applications', label: 'Candidatures', icon: ClipboardList },
+  { href: '/candidate/profile', label: 'Profil', icon: User },
 ];
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('user');
+    router.push('/');
+  };
 
   return (
     <div className="min-h-screen bg-sand flex">
@@ -32,7 +39,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       <aside className="hidden md:flex flex-col w-60 bg-white border-r border-sand-dark flex-shrink-0">
         {/* Logo */}
         <div className="px-6 py-5 border-b border-sand-dark">
-          <Link href="/dashboard">
+          <Link href="/candidate/dashboard">
             <span className="font-syne text-lg font-bold text-savane">Jog Door Waar</span>
           </Link>
         </div>
@@ -62,13 +69,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         {/* Upsell + Logout */}
         <div className="px-3 pb-4 space-y-2">
           <Link
-            href="/upgrade"
+            href="/candidate/billing"
             className="flex items-center gap-2 px-3 py-2.5 bg-terracotta/10 text-terracotta rounded-xl font-dm text-sm hover:bg-terracotta/20 transition-colors"
           >
             <Zap className="h-4 w-4" />
             Passer Premium
           </Link>
-          <button className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl font-dm text-sm text-savane/50 hover:bg-sand-dark hover:text-savane transition-colors">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl font-dm text-sm text-savane/50 hover:bg-sand-dark hover:text-savane transition-colors"
+          >
             <LogOut className="h-4 w-4" />
             Déconnexion
           </button>
