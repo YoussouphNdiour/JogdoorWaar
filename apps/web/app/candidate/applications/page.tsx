@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { apiFetch } from '../../../lib/api/client';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -96,98 +97,6 @@ const COLUMN_ORDER: ApplicationStatus[] = [
   'WITHDRAWN',
 ];
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-const MOCK_APPLICATIONS: Application[] = [
-  {
-    id: '1',
-    jobTitle: 'Développeur React Senior',
-    company: 'Orange Sénégal',
-    city: 'Dakar',
-    appliedAt: '2026-03-10',
-    status: 'INTERVIEW_SCHEDULED',
-    channel: 'WEB',
-    cvUsed: 'CV Tech 2026.pdf',
-    notes: 'Entretien RH prévu — préparer questions STAR',
-    interviewDate: '2026-03-25',
-  },
-  {
-    id: '2',
-    jobTitle: 'Product Manager',
-    company: 'Wave',
-    city: 'Dakar',
-    appliedAt: '2026-03-08',
-    status: 'APPLIED',
-    channel: 'WHATSAPP',
-    cvUsed: 'CV PM.pdf',
-  },
-  {
-    id: '3',
-    jobTitle: 'Data Analyst',
-    company: 'SenBank',
-    city: 'Dakar',
-    appliedAt: '2026-02-28',
-    status: 'OFFER_RECEIVED',
-    channel: 'WEB',
-    cvUsed: 'CV Data.pdf',
-    notes: 'Offre reçue — négocier le salaire',
-    offerAmount: 850000,
-  },
-  {
-    id: '4',
-    jobTitle: 'UX Designer',
-    company: 'Expresso',
-    city: 'Dakar',
-    appliedAt: '2026-03-01',
-    status: 'INTERVIEW_DONE',
-    channel: 'WEB',
-    cvUsed: 'CV Design.pdf',
-    interviewDate: '2026-03-15',
-    notes: 'Bon ressenti. En attente de retour.',
-  },
-  {
-    id: '5',
-    jobTitle: 'Responsable Marketing Digital',
-    company: 'Auchan Sénégal',
-    city: 'Dakar',
-    appliedAt: '2026-03-18',
-    status: 'TO_APPLY',
-    channel: 'WEB',
-    cvUsed: 'CV Marketing.pdf',
-  },
-  {
-    id: '6',
-    jobTitle: 'Ingénieur DevOps',
-    company: 'Sonatel',
-    city: 'Dakar',
-    appliedAt: '2026-02-15',
-    status: 'REJECTED',
-    channel: 'WHATSAPP',
-    cvUsed: 'CV Tech 2026.pdf',
-    notes: 'Profil non retenu — trop junior.',
-  },
-  {
-    id: '7',
-    jobTitle: 'Chef de Projet Digital',
-    company: 'Total Sénégal',
-    city: 'Dakar',
-    appliedAt: '2026-02-20',
-    status: 'WITHDRAWN',
-    channel: 'WEB',
-    cvUsed: 'CV PM.pdf',
-    notes: 'Poste ne correspond plus à mes objectifs.',
-  },
-  {
-    id: '8',
-    jobTitle: 'Analyste Financier',
-    company: 'CBAO Groupe Attijariwafa',
-    city: 'Dakar',
-    appliedAt: '2026-03-20',
-    status: 'APPLIED',
-    channel: 'WEB',
-    cvUsed: 'CV Finance.pdf',
-  },
-];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -365,12 +274,21 @@ function KanbanColumn({
 export default function ApplicationsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiFetch<Application[]>('/applications')
+      .then(setApplications)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   function handleToggle(id: string) {
     setExpandedId((prev) => (prev === id ? null : id));
   }
 
-  const filtered = MOCK_APPLICATIONS.filter(
+  const filtered = applications.filter(
     (a) =>
       a.jobTitle.toLowerCase().includes(search.toLowerCase()) ||
       a.company.toLowerCase().includes(search.toLowerCase()),
@@ -391,6 +309,15 @@ export default function ApplicationsPage() {
     (a) => a.status === 'INTERVIEW_SCHEDULED' || a.status === 'INTERVIEW_DONE',
   ).length;
 
+  if (loading) {
+    return (
+      <div className="flex flex-col h-full min-h-screen bg-[#FDFAF6] animate-pulse p-6 space-y-4">
+        <div className="h-8 bg-sand-dark rounded w-1/3" />
+        <div className="h-64 bg-sand-dark rounded-2xl" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full min-h-screen bg-[#FDFAF6]">
       {/* Top bar */}
@@ -398,7 +325,7 @@ export default function ApplicationsPage() {
         <div className="flex items-center gap-3 mb-4">
           <h1 className="font-syne text-2xl font-bold text-[#1B4332]">Mes Candidatures</h1>
           <span className="font-syne text-sm font-bold px-2.5 py-0.5 bg-[#E8580A] text-white rounded-full">
-            {MOCK_APPLICATIONS.length}
+            {applications.length}
           </span>
         </div>
 

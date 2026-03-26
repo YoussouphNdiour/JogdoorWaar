@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { apiFetch } from '../../../lib/api/client';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -41,28 +41,6 @@ const FEATURES: Feature[] = [
   { label: "Publication d'offres", free: false, premium: false, recruiter: '10/mois' },
 ];
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-const MOCK_INVOICES: Invoice[] = [
-  {
-    id: 'INV-2026-003',
-    date: '2026-03-01',
-    plan: 'PREMIUM',
-    amount: 3500,
-    method: 'WAVE',
-    status: 'PAID',
-  },
-  {
-    id: 'INV-2026-002',
-    date: '2026-02-01',
-    plan: 'PREMIUM',
-    amount: 3500,
-    method: 'ORANGE_MONEY',
-    status: 'PAID',
-  },
-];
-
-const CURRENT_USER_PLAN: Plan = 'FREE';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -413,6 +391,18 @@ function PlanCard({
 
 export default function BillingPage() {
   const [upgradeTarget, setUpgradeTarget] = useState<'PREMIUM' | 'RECRUITER' | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<Plan>('FREE');
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [billingLoading, setBillingLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      apiFetch<{ plan: Plan }>('/users/me').then((u) => setCurrentPlan(u.plan)),
+      apiFetch<Invoice[]>('/payments/invoices').then(setInvoices),
+    ])
+      .catch(() => {})
+      .finally(() => setBillingLoading(false));
+  }, []);
 
   const planLabels: Record<Plan, string> = {
     FREE: 'Gratuit',
@@ -425,6 +415,16 @@ export default function BillingPage() {
     ORANGE_MONEY: 'Orange Money',
     STRIPE: 'Carte bancaire',
   };
+
+  if (billingLoading) {
+    return (
+      <div className="max-w-5xl mx-auto px-6 py-8 animate-pulse space-y-4">
+        <div className="h-8 bg-sand-dark rounded w-1/3" />
+        <div className="h-32 bg-sand-dark rounded-3xl" />
+        <div className="h-64 bg-sand-dark rounded-3xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-8 space-y-10">
@@ -448,9 +448,9 @@ export default function BillingPage() {
             <div>
               <p className="font-dm text-xs text-gray-400">Plan actuel</p>
               <p className="font-syne font-bold text-[#1B4332] text-xl">
-                {planLabels[CURRENT_USER_PLAN]}
+                {planLabels[currentPlan]}
               </p>
-              {CURRENT_USER_PLAN === 'FREE' && (
+              {currentPlan === 'FREE' && (
                 <p className="font-dm text-xs text-gray-400 mt-0.5">Aucune date d&apos;expiration</p>
               )}
             </div>
@@ -475,7 +475,7 @@ export default function BillingPage() {
             <PlanCard
               key={plan}
               plan={plan}
-              currentPlan={CURRENT_USER_PLAN}
+              currentPlan={currentPlan}
               onUpgrade={setUpgradeTarget}
             />
           ))}
@@ -486,7 +486,7 @@ export default function BillingPage() {
       <div>
         <h2 className="font-syne text-lg font-bold text-[#1B4332] mb-4">Historique des paiements</h2>
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-          {MOCK_INVOICES.length === 0 ? (
+          {invoices.length === 0 ? (
             <div className="p-8 text-center">
               <p className="font-dm text-sm text-gray-400">Aucun paiement enregistré.</p>
             </div>
@@ -515,7 +515,7 @@ export default function BillingPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {MOCK_INVOICES.map((inv) => (
+                {invoices.map((inv) => (
                   <tr key={inv.id} className="hover:bg-[#FDFAF6] transition-colors">
                     <td className="px-6 py-4">
                       <span className="font-dm text-xs text-gray-500 font-mono">{inv.id}</span>
