@@ -15,6 +15,11 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     headers: { ...headers, ...(init?.headers ?? {}) },
   });
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('access_token');
+      window.location.href = '/auth/login';
+      throw new Error('Session expirée. Reconnectez-vous.');
+    }
     const err = await res.json().catch(() => ({ message: `Erreur ${res.status}` }));
     throw new Error(err.message || `HTTP ${res.status}`);
   }
