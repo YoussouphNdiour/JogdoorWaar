@@ -38,4 +38,9 @@ export class RegisterDto {
   @IsEnum(UserRole)
   @IsOptional()
   role?: UserRole;
+
+  @ApiPropertyOptional({ example: 'Orange Sénégal' })
+  @IsString()
+  @IsOptional()
+  company?: string;
 }
