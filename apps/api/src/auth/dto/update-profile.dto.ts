@@ -28,6 +28,11 @@ export class UpdateProfileDto {
   @IsOptional()
   phone?: string;
 
+  @ApiPropertyOptional({ example: '221771234567' })
+  @IsString()
+  @IsOptional()
+  whatsappNumber?: string;
+
   @ApiPropertyOptional({ example: 'https://storage.supabase.co/avatars/user.png' })
   @IsString()
   @IsOptional()
@@ -48,7 +53,7 @@ export class UpdateProfileDto {
   @IsOptional()
   headline?: string;
 
-  @ApiPropertyOptional({ example: '5 ans d'expérience en développement web full stack...' })
+  @ApiPropertyOptional({ example: "5 ans d'expérience en développement web full stack..." })
   @IsString()
   @IsOptional()
   summary?: string;

@@ -49,8 +49,8 @@ function timeAgo(dateStr: string): string {
 
 export function JobCard({ job, isSaved, onSave, className }: JobCardProps) {
   const salary = formatSalary(job.salaryMin, job.salaryMax);
-  const hasHighScore = job.matchScore !== undefined && job.matchScore >= 80;
-  const hasMediumScore = job.matchScore !== undefined && job.matchScore >= 60;
+  const hasHighScore = job.matchScore != null && job.matchScore >= 80;
+  const hasMediumScore = job.matchScore != null && job.matchScore >= 60;
 
   return (
     <article

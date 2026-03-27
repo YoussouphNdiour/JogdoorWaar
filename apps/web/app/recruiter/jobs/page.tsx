@@ -117,7 +117,7 @@ export default function RecruiterJobsPage() {
                       <Eye className="h-3 w-3" /> {job.viewCount} vues
                     </span>
                     <span className="flex items-center gap-1 text-xs font-dm text-savane/50">
-                      <Users className="h-3 w-3" /> {job.applicationCount} candidatures
+                      <Users className="h-3 w-3" /> {job.applicationsCount} candidatures
                     </span>
                     <span className="text-xs font-dm text-savane/40">
                       Publiée le {new Date(job.publishedAt).toLocaleDateString('fr-SN', { day: 'numeric', month: 'short' })}

@@ -105,6 +105,7 @@ export interface SafeUser {
   role: UserRole;
   plan: Plan;
   emailVerified: boolean;
+  whatsappNumber?: string;
   whatsappVerified: boolean;
   isAnonymousMode: boolean;
   createdAt: Date;
@@ -492,6 +493,10 @@ export class AuthService {
         ...(dto.lastName !== undefined && { lastName: dto.lastName.trim() }),
         ...(encryptedPhone !== undefined && { phone: encryptedPhone }),
         ...(dto.avatarUrl !== undefined && { avatarUrl: dto.avatarUrl }),
+        ...(dto.whatsappNumber !== undefined && {
+          whatsappNumber: dto.whatsappNumber.trim(),
+          whatsappVerified: true,
+        }),
         ...(profileUpsert !== undefined && { profile: profileUpsert }),
       },
       include: { profile: true },
@@ -570,6 +575,7 @@ export class AuthService {
       role: UserRole;
       plan: Plan;
       emailVerified: boolean;
+      whatsappNumber: string | null;
       whatsappVerified: boolean;
       isAnonymousMode: boolean;
       createdAt: Date;
@@ -595,6 +601,7 @@ export class AuthService {
       role: user.role,
       plan: user.plan,
       emailVerified: user.emailVerified,
+      whatsappNumber: user.whatsappNumber ?? undefined,
       whatsappVerified: user.whatsappVerified,
       isAnonymousMode: user.isAnonymousMode,
       createdAt: user.createdAt,

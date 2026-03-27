@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Upload, FileText, Trash2, Star, CheckCircle, User, Phone, Mail } from 'lucide-react';
+import { Upload, FileText, Trash2, Star, CheckCircle, User, Phone, Mail, MessageCircle } from 'lucide-react';
 import { apiFetch } from '../../../lib/api/client';
 
 interface CvFile {
@@ -23,6 +23,8 @@ interface UserProfile {
   lastName: string;
   email: string;
   phone?: string;
+  whatsappNumber?: string;
+  whatsappVerified: boolean;
   title?: string;
   city?: string;
   plan: string;
@@ -41,6 +43,7 @@ export default function ProfilePage() {
     firstName: '',
     lastName: '',
     phone: '',
+    whatsappNumber: '',
     title: '',
     city: '',
   });
@@ -56,6 +59,7 @@ export default function ProfilePage() {
         firstName: prof.firstName,
         lastName: prof.lastName,
         phone: prof.phone ?? '',
+        whatsappNumber: prof.whatsappNumber ?? '',
         title: prof.title ?? '',
         city: prof.city ?? '',
       });
@@ -112,6 +116,7 @@ export default function ProfilePage() {
       if (form.firstName) patch.firstName = form.firstName;
       if (form.lastName) patch.lastName = form.lastName;
       if (form.phone) patch.phone = form.phone;
+      if (form.whatsappNumber) patch.whatsappNumber = form.whatsappNumber;
       if (form.title !== undefined) patch.title = form.title;
       if (form.city !== undefined) patch.city = form.city;
       await apiFetch('/auth/me', { method: 'PATCH', body: JSON.stringify(patch) });
@@ -185,6 +190,30 @@ export default function ProfilePage() {
                 placeholder="+221 7X XXX XX XX"
                 className="w-full px-4 py-3 bg-sand-dark border border-sand-dark rounded-xl font-dm text-savane placeholder:text-savane/40 focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta"
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="font-dm text-sm text-savane/70 mb-1.5 block flex items-center gap-2">
+                <MessageCircle className="h-3.5 w-3.5 text-green-600" />
+                Numéro WhatsApp
+                {profile?.whatsappVerified && (
+                  <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                    Lié ✓
+                  </span>
+                )}
+              </label>
+              <input
+                type="tel"
+                value={form.whatsappNumber}
+                onChange={(e) => setForm({ ...form, whatsappNumber: e.target.value })}
+                placeholder="221771234567"
+                className="w-full px-4 py-3 bg-sand-dark border border-sand-dark rounded-xl font-dm text-savane placeholder:text-savane/40 focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta"
+              />
+              <p className="font-dm text-[11px] text-savane/40 mt-1">
+                Format international sans + ni espaces. Ex: 221771234567
+              </p>
             </div>
           </div>
 

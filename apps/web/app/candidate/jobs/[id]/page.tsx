@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, MapPin, Briefcase, Clock, ExternalLink, Bookmark, Send } from 'lucide-react';
+import { ArrowLeft, MapPin, Briefcase, Clock, ExternalLink, Bookmark, Send, FileText, X, Sparkles, ChevronRight } from 'lucide-react';
 import { apiFetch } from '../../../../lib/api/client';
 
 interface JobDetail {
@@ -24,7 +24,8 @@ interface JobDetail {
   descriptionShort?: string;
   description?: string;
   requiredSkills: string[];
-  matchScore?: number;
+  matchScore?: number | null;
+  isSaved?: boolean;
 }
 
 function formatSalary(min?: number, max?: number) {
@@ -38,20 +39,38 @@ function formatSalary(min?: number, max?: number) {
   return `Jusqu'à ${fmt(max!)}/mois`;
 }
 
+interface CvOption {
+  id: string;
+  name: string;
+  label?: string;
+  isDefault: boolean;
+}
+
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const [job, setJob] = useState<JobDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  // Apply modal state
+  const [showModal, setShowModal] = useState(false);
+  const [cvs, setCvs] = useState<CvOption[]>([]);
+  const [loadingCvs, setLoadingCvs] = useState(false);
+  const [selectedCvId, setSelectedCvId] = useState('');
+  const [coverLetter, setCoverLetter] = useState('');
+  const [generatingLetter, setGeneratingLetter] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [applyError, setApplyError] = useState('');
+
   useEffect(() => {
     apiFetch<JobDetail>(`/jobs/${id}`)
-      .then(setJob)
+      .then((data) => {
+        setJob(data);
+        if (data.isSaved !== undefined) setSaved(data.isSaved);
+      })
       .catch(() => setError('Offre introuvable.'))
       .finally(() => setLoading(false));
   }, [id]);
@@ -73,16 +92,55 @@ export default function JobDetailPage() {
     }
   };
 
+  const openApplyModal = async () => {
+    setShowModal(true);
+    setApplyError('');
+    setCoverLetter('');
+    setLoadingCvs(true);
+    try {
+      const data = await apiFetch<CvOption[]>('/cvs');
+      setCvs(data);
+      const def = data.find((c) => c.isDefault) ?? data[0];
+      if (def) setSelectedCvId(def.id);
+    } catch {
+      // silent — user can still apply without CV
+    } finally {
+      setLoadingCvs(false);
+    }
+  };
+
+  const handleGenerateLetter = async () => {
+    setGeneratingLetter(true);
+    try {
+      const result = await apiFetch<{ coverLetter: string }>('/ai/cover-letter', {
+        method: 'POST',
+        body: JSON.stringify({ jobId: id, cvId: selectedCvId || undefined }),
+      });
+      setCoverLetter(result.coverLetter);
+    } catch (err: unknown) {
+      setApplyError(err instanceof Error ? err.message : 'Erreur de génération.');
+    } finally {
+      setGeneratingLetter(false);
+    }
+  };
+
   const handleApply = async () => {
     setApplying(true);
+    setApplyError('');
     try {
       await apiFetch('/applications', {
         method: 'POST',
-        body: JSON.stringify({ jobId: id, channel: 'WEB' }),
+        body: JSON.stringify({
+          jobId: id,
+          channel: 'WEB',
+          ...(selectedCvId && { cvId: selectedCvId }),
+          ...(coverLetter && { coverLetter }),
+        }),
       });
       setApplied(true);
+      setShowModal(false);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la candidature.');
+      setApplyError(err instanceof Error ? err.message : 'Erreur lors de la candidature.');
     } finally {
       setApplying(false);
     }
@@ -114,6 +172,7 @@ export default function JobDetailPage() {
   const salary = formatSalary(job.salaryMin, job.salaryMax);
 
   return (
+    <>
     <div className="max-w-4xl mx-auto px-6 py-8">
       {/* Back */}
       <Link
@@ -216,27 +275,16 @@ export default function JobDetailPage() {
               })}
             </div>
 
-            {error && (
-              <div className="bg-red-50 text-red-700 border border-red-200 rounded-xl px-3 py-2 text-xs font-dm">
-                {error}
-              </div>
-            )}
-
             {applied ? (
               <div className="bg-savane/10 text-savane border border-savane/20 rounded-xl px-4 py-3 text-sm font-dm font-medium text-center">
                 Candidature envoyée ✓
               </div>
             ) : (
               <button
-                onClick={handleApply}
-                disabled={applying}
-                className="w-full bg-terracotta text-white py-3 rounded-xl font-dm font-semibold hover:bg-terracotta/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                onClick={openApplyModal}
+                className="w-full bg-terracotta text-white py-3 rounded-xl font-dm font-semibold hover:bg-terracotta/90 transition-colors flex items-center justify-center gap-2"
               >
-                {applying ? (
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
+                <Send className="h-4 w-4" />
                 Postuler
               </button>
             )}
@@ -288,5 +336,130 @@ export default function JobDetailPage() {
         </div>
       </div>
     </div>
+
+    {/* Apply modal */}
+    {showModal && (
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-sand-dark flex-shrink-0">
+            <div>
+              <h2 className="font-syne font-bold text-savane">Postuler</h2>
+              <p className="font-dm text-xs text-savane/50 mt-0.5 truncate max-w-xs">{job?.title} — {job?.company}</p>
+            </div>
+            <button
+              onClick={() => setShowModal(false)}
+              className="p-2 rounded-xl hover:bg-sand-dark transition-colors text-savane/50 hover:text-savane"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+            {/* CV selector */}
+            <div>
+              <label className="font-dm text-sm font-medium text-savane mb-2 block">CV à joindre</label>
+              {loadingCvs ? (
+                <div className="flex items-center gap-2 text-savane/40 font-dm text-sm">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-savane/30 border-t-terracotta" />
+                  Chargement...
+                </div>
+              ) : cvs.length === 0 ? (
+                <div className="bg-sand-dark rounded-xl px-4 py-3 font-dm text-sm text-savane/60">
+                  Aucun CV uploadé. <Link href="/candidate/profile" className="text-terracotta hover:underline">Uploader un CV →</Link>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {cvs.map((cv) => (
+                    <label
+                      key={cv.id}
+                      className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                        selectedCvId === cv.id
+                          ? 'border-terracotta bg-terracotta/5'
+                          : 'border-sand-dark hover:border-savane/30'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="cv"
+                        value={cv.id}
+                        checked={selectedCvId === cv.id}
+                        onChange={() => setSelectedCvId(cv.id)}
+                        className="accent-terracotta"
+                      />
+                      <FileText className={`h-4 w-4 flex-shrink-0 ${selectedCvId === cv.id ? 'text-terracotta' : 'text-savane/40'}`} />
+                      <span className="font-dm text-sm text-savane truncate flex-1">{cv.label ?? cv.name}</span>
+                      {cv.isDefault && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 bg-terracotta/15 text-terracotta rounded-full flex-shrink-0">
+                          Principal
+                        </span>
+                      )}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Cover letter */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="font-dm text-sm font-medium text-savane">
+                  Lettre de motivation <span className="text-savane/40 font-normal">(optionnel)</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={handleGenerateLetter}
+                  disabled={generatingLetter}
+                  className="flex items-center gap-1.5 text-xs font-dm font-semibold text-terracotta hover:text-terracotta/80 disabled:opacity-50 transition-colors"
+                >
+                  {generatingLetter ? (
+                    <span className="h-3 w-3 animate-spin rounded-full border-2 border-terracotta/30 border-t-terracotta" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5" />
+                  )}
+                  Générer avec l&apos;IA
+                </button>
+              </div>
+              <textarea
+                value={coverLetter}
+                onChange={(e) => setCoverLetter(e.target.value)}
+                placeholder="Madame, Monsieur,&#10;&#10;Je me permets de vous adresser ma candidature..."
+                rows={7}
+                className="w-full px-4 py-3 bg-sand-dark border border-sand-dark rounded-xl font-dm text-sm text-savane placeholder:text-savane/30 focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta resize-none"
+              />
+            </div>
+
+            {applyError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 font-dm text-sm">
+                {applyError}
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-sand-dark flex-shrink-0 flex items-center gap-3">
+            <button
+              onClick={() => setShowModal(false)}
+              className="flex-1 py-2.5 rounded-xl border border-sand-dark font-dm text-sm text-savane hover:bg-sand-dark transition-colors"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={handleApply}
+              disabled={applying}
+              className="flex-1 py-2.5 rounded-xl bg-terracotta text-white font-dm text-sm font-semibold hover:bg-terracotta/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+            >
+              {applying ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+              Envoyer la candidature
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

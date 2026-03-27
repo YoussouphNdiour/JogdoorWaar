@@ -4,6 +4,7 @@ import { AiService } from '../ai/ai.service';
 import { CvSelectorService } from '../ai/cv-selector.service';
 import { WaSenderApiService } from './wasender-api.service';
 import { WhatsAppStateService } from './whatsapp-state.service';
+import { EmailService } from '../notifications/email.service';
 import { WhatsAppBotState, Plan } from '@prisma/client';
 import { SessionData } from './interfaces/bot-context.interface';
 import { WaSenderMessage } from './dto/wasender-webhook.dto';
@@ -37,6 +38,7 @@ export class WhatsAppBotService {
     private readonly wa: WaSenderApiService,
     private readonly aiService: AiService,
     private readonly cvSelector: CvSelectorService,
+    private readonly emailService: EmailService,
   ) {}
 
   // ─── Entry point called by controller (fire-and-forget) ──────────
@@ -350,6 +352,14 @@ export class WhatsAppBotService {
         applicationId: application.id,
       });
 
+      // Fire-and-forget: send email to recruiter
+      this.sendApplicationEmailToRecruiter(
+        session.userId,
+        session.context.jobId!,
+        session.context.selectedCvId ?? null,
+        withCoverLetter ? (session.context.coverLetterDraft ?? null) : null,
+      ).catch((err) => this.logger.warn(`WhatsApp application email skipped: ${err?.message}`));
+
       await this.wa.sendText(
         phone,
         `🎉 *Candidature enregistrée !*\n\n` +
@@ -384,6 +394,62 @@ export class WhatsAppBotService {
       update: {},
     });
     await this.wa.sendText(phone, `💾 *${job.title}* sauvegardée ! Retrouvez-la sur jogdoorwaar.sn → Offres sauvegardées.`);
+  }
+
+  // ─── Email to recruiter ───────────────────────────────────────────
+  private async sendApplicationEmailToRecruiter(
+    userId: string,
+    jobId: string,
+    cvId: string | null,
+    coverLetter: string | null,
+  ): Promise<void> {
+    const [job, user, cv] = await Promise.all([
+      this.prisma.job.findUnique({
+        where: { id: jobId },
+        select: { title: true, company: true, description: true, recruiterId: true, sourcePlatform: true },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { firstName: true, lastName: true, email: true },
+      }),
+      cvId
+        ? this.prisma.userCV.findUnique({
+            where: { id: cvId },
+            select: { fileUrl: true, name: true, label: true },
+          })
+        : this.prisma.userCV.findFirst({
+            where: { userId, isDefault: true },
+            select: { fileUrl: true, name: true, label: true },
+          }),
+    ]);
+
+    if (!job || !user) return;
+
+    let recruiterEmail: string | null = null;
+    if (job.sourcePlatform === 'DIRECT' && job.recruiterId) {
+      const recruiter = await this.prisma.user.findUnique({
+        where: { id: job.recruiterId },
+        select: { email: true },
+      });
+      recruiterEmail = recruiter?.email ?? null;
+    }
+    if (!recruiterEmail && job.description) {
+      const match = job.description.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
+      recruiterEmail = match?.[0] ?? null;
+    }
+    if (!recruiterEmail) return;
+
+    const cvLabel = cv?.label ?? cv?.name;
+    await this.emailService.sendApplicationEmail({
+      to: recruiterEmail,
+      candidateName: `${user.firstName} ${user.lastName}`,
+      candidateEmail: user.email,
+      jobTitle: job.title,
+      company: job.company,
+      cvUrl: cv?.fileUrl ?? undefined,
+      cvFileName: cvLabel ? `${cvLabel}.pdf` : 'cv.pdf',
+      coverLetter: coverLetter ?? undefined,
+    });
   }
 
   // ─── Help message ─────────────────────────────────────────────────

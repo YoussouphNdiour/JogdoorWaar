@@ -170,7 +170,7 @@ export default function AlertsPage() {
             <div>
               <label className="font-dm text-sm text-savane/70 mb-1.5 block">Fréquence</label>
               <div className="flex gap-2">
-                {(['IMMEDIATE', 'DAILY', 'WEEKLY'] as const).map((f) => (
+                {(['INSTANT', 'DAILY', 'WEEKLY'] as const).map((f) => (
                   <button
                     key={f}
                     type="button"

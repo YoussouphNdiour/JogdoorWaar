@@ -65,6 +65,34 @@ export class EmailService {
     }
   }
 
+  async sendApplicationEmail(params: {
+    to: string;
+    candidateName: string;
+    candidateEmail: string;
+    jobTitle: string;
+    company: string;
+    cvUrl?: string;
+    cvFileName?: string;
+    coverLetter?: string;
+  }): Promise<void> {
+    const { to, candidateName, candidateEmail, jobTitle, company, cvUrl, cvFileName, coverLetter } = params;
+
+    try {
+      await this.resend.emails.send({
+        from: this.from,
+        to,
+        reply_to: candidateEmail,
+        subject: `Candidature : ${jobTitle} — ${candidateName}`,
+        html: this.buildApplicationEmailHtml(candidateName, candidateEmail, jobTitle, company, coverLetter),
+        attachments: cvUrl ? [{ filename: cvFileName ?? 'cv.pdf', path: cvUrl }] : [],
+      });
+      this.logger.log(`Email candidature envoyé → ${to} (${jobTitle})`);
+    } catch (err) {
+      this.logger.error(`Erreur email candidature → ${to}: ${err}`);
+      throw err;
+    }
+  }
+
   async sendEmailVerificationOtp(email: string, otp: string, firstName: string): Promise<void> {
     try {
       await this.resend.emails.send({
@@ -163,6 +191,61 @@ export class EmailService {
       </a>
     </p>
     <p style="font-size:12px;color:#6B7280">Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
+  </div>
+</body>
+</html>`;
+  }
+
+  private buildApplicationEmailHtml(
+    candidateName: string,
+    candidateEmail: string,
+    jobTitle: string,
+    company: string,
+    coverLetter?: string,
+  ): string {
+    const coverLetterBlock = coverLetter
+      ? `<div style="margin-top:24px;padding:20px;background:#FDFAF6;border-left:4px solid #E8580A;border-radius:0 8px 8px 0">
+           <h3 style="margin:0 0 12px;color:#1B4332;font-size:15px">Lettre de motivation</h3>
+           <div style="font-size:14px;line-height:1.7;color:#374151;white-space:pre-wrap">${coverLetter.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+         </div>`
+      : '';
+
+    return `
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="utf-8"></head>
+<body style="font-family:'DM Sans',Arial,sans-serif;background:#FDFAF6;margin:0;padding:20px">
+  <div style="max-width:600px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;border:1px solid #E5E7EB">
+    <div style="background:#1B4332;color:white;padding:24px 32px">
+      <p style="margin:0;font-size:12px;opacity:.7;letter-spacing:1px;text-transform:uppercase">Via Jog Door Waar</p>
+      <h1 style="margin:8px 0 0;font-size:20px;font-weight:700">Nouvelle candidature</h1>
+    </div>
+    <div style="padding:32px">
+      <div style="background:#FFF7F3;border:1px solid #FED7C0;border-radius:12px;padding:16px 20px;margin-bottom:24px">
+        <p style="margin:0 0 4px;font-size:14px;font-weight:600;color:#1B4332">Poste visé</p>
+        <p style="margin:0;font-size:18px;font-weight:700;color:#E8580A">${jobTitle}</p>
+        <p style="margin:4px 0 0;font-size:13px;color:#6B7280">${company}</p>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <tr>
+          <td style="padding:8px 0;color:#6B7280;width:140px">Candidat</td>
+          <td style="padding:8px 0;font-weight:600;color:#111827">${candidateName}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;color:#6B7280">Email</td>
+          <td style="padding:8px 0"><a href="mailto:${candidateEmail}" style="color:#E8580A">${candidateEmail}</a></td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;color:#6B7280">CV</td>
+          <td style="padding:8px 0;color:#059669">${(coverLetter || '') ? '✓ Joint en pièce jointe' : '✓ Joint en pièce jointe'}</td>
+        </tr>
+      </table>
+      ${coverLetterBlock}
+      <p style="margin-top:32px;font-size:13px;color:#6B7280">
+        Vous pouvez répondre directement à cet email pour contacter le candidat.<br>
+        Candidature reçue via <a href="${this.config.get('APP_URL', 'https://jogdoorwaar.sn')}" style="color:#E8580A">Jog Door Waar</a>.
+      </p>
+    </div>
   </div>
 </body>
 </html>`;

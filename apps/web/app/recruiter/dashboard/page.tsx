@@ -52,7 +52,7 @@ export default function RecruiterDashboardPage() {
             <TrendingUp className="h-4 w-4 text-savane/60" />
             <span className="font-dm text-sm text-savane/70">
               Plan <span className="font-semibold text-savane">{stats.plan}</span> —{' '}
-              <span className="text-terracotta font-semibold">{stats.jobsRemaining} offres restantes</span> ce mois
+              <span className="text-terracotta font-semibold">{stats.jobsRemainingThisMonth} offres restantes</span> ce mois
             </span>
           </div>
           <Link href="/recruiter/billing" className="font-dm text-xs text-terracotta hover:underline">
@@ -117,7 +117,7 @@ export default function RecruiterDashboardPage() {
                     </div>
                     <div className="flex items-center gap-3 text-xs font-dm text-savane/50">
                       <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> {job.viewCount}</span>
-                      <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {job.applicationCount} candidatures</span>
+                      <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {job.applicationsCount} candidatures</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
