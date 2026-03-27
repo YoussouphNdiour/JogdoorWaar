@@ -74,11 +74,11 @@ export class EmailService {
     cvUrl?: string;
     cvFileName?: string;
     coverLetter?: string;
-  }): Promise<void> {
+  }): Promise<string> {
     const { to, candidateName, candidateEmail, jobTitle, company, cvUrl, cvFileName, coverLetter } = params;
 
     try {
-      await this.resend.emails.send({
+      const result = await this.resend.emails.send({
         from: this.from,
         to,
         reply_to: candidateEmail,
@@ -86,7 +86,8 @@ export class EmailService {
         html: this.buildApplicationEmailHtml(candidateName, candidateEmail, jobTitle, company, coverLetter),
         attachments: cvUrl ? [{ filename: cvFileName ?? 'cv.pdf', path: cvUrl }] : [],
       });
-      this.logger.log(`Email candidature envoyé → ${to} (${jobTitle})`);
+      this.logger.log(`Email candidature envoyé → ${to} (${jobTitle}) id=${result.data?.id}`);
+      return result.data?.id ?? 'sent';
     } catch (err) {
       this.logger.error(`Erreur email candidature → ${to}: ${err}`);
       throw err;

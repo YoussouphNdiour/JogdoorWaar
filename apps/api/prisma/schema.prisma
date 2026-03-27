@@ -230,6 +230,9 @@ model Application {
   recruiterStatus      RecruiterApplicationStatus @default(PENDING)
   notes                String?            @db.Text
   generatedCoverLetter String?            @db.Text
+  recruiterEmailSentTo String?            // email extracted from job description or recruiter account
+  emailSentAt          DateTime?          // when the application email was sent
+  emailResendId        String?            // Resend delivery ID (proof of sending)
   interviewDate        DateTime?
   interviewNotes       String?
   offerReceived        Boolean            @default(false)
