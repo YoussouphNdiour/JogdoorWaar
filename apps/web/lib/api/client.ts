@@ -4,7 +4,9 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('access_token');
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (token && token !== 'undefined' && token !== 'null') {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
   }
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
