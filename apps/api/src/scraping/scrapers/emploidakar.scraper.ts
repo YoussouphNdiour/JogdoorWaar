@@ -48,22 +48,32 @@ export class EmploiDakarScraper extends BaseScraper {
       (_i, el) => {
         const href = $(el).attr('href');
         if (!href) return;
-        const absolute = href.startsWith('http') ? href : `${this.baseUrl}${href}`;
-        if (!urls.includes(absolute)) urls.push(absolute);
+        try {
+          const absolute = href.startsWith('http') ? href : `${this.baseUrl}${href}`;
+          const u = new URL(absolute);
+          if (!['www.emploidakar.com', 'emploidakar.com'].includes(u.hostname)) return;
+          if (!urls.includes(absolute)) urls.push(absolute);
+        } catch {
+          // skip malformed hrefs
+        }
       },
     );
 
-    // Fallback: any anchor whose href starts with baseUrl and looks like a job detail
+    // Fallback: scan all anchors for job-detail URLs only
+    // Job detail pattern: /offre-demploi/<slug>/ (singular, no query params)
     if (urls.length === 0) {
       $('a[href]').each((_i, el) => {
         const href = $(el).attr('href') ?? '';
-        if (
-          href.includes('/offre') &&
-          !href.endsWith('/offres-demploi') &&
-          href.length > this.baseUrl.length + 5
-        ) {
+        if (!href.includes('/offre-demploi/')) return; // must be detail page (singular)
+        if (href.includes('?') || href.includes('#')) return; // skip share buttons / anchors
+        try {
           const absolute = href.startsWith('http') ? href : `${this.baseUrl}${href}`;
+          const u = new URL(absolute);
+          // Only emploidakar.com URLs
+          if (!['www.emploidakar.com', 'emploidakar.com'].includes(u.hostname)) return;
           if (!urls.includes(absolute)) urls.push(absolute);
+        } catch {
+          // skip malformed hrefs (e.g. whatsapp:// concatenated with baseUrl)
         }
       });
     }
@@ -79,34 +89,69 @@ export class EmploiDakarScraper extends BaseScraper {
 
     // Try multiple selector patterns to be resilient to template changes
     const title =
-      $('h1.job-title, h1.titre-offre, h1.entry-title, .job-title h1, h2.title').first().text().trim() ||
+      $('h1.job-title, h1.titre-offre, h1.entry-title, .job-title h1, h2.title, h1.entry-title, .job_listing-title h1').first().text().trim() ||
       $('h1').first().text().trim();
 
     const company =
-      $('.entreprise, .company-name, .nom-entreprise, .employer-name').first().text().trim();
+      $('.entreprise, .company-name, .nom-entreprise, .employer-name, .job-company, .company, .listing-company, [itemprop="hiringOrganization"]').first().text().trim();
 
     const description =
-      $('.description, .job-description, .contenu-offre, .entry-content').first().text().trim() ||
+      $('.description, .job-description, .contenu-offre, .entry-content, .job_listing-description, .single-job-content').first().text().trim() ||
       $('article').first().text().trim();
 
     const locationText =
-      $('.lieu, .location, .ville, .localisation').first().text().trim();
+      $('.lieu, .location, .ville, .localisation, .job-location, [itemprop="jobLocation"]').first().text().trim();
 
     const contractTypeText =
-      $('.type-contrat, .contract-type, .contrat').first().text().trim();
+      $('.type-contrat, .contract-type, .contrat, .job-type').first().text().trim();
 
     const dateText =
+      $('.date, .date-publication, .date-offre, time[datetime], time').first().attr('datetime') ||
       $('.date, .date-publication, .date-offre, time').first().text().trim();
 
     const logoEl = $('img.logo-entreprise, .company-logo img, .logo img').first();
     const logoSrc = logoEl.attr('src') ?? logoEl.attr('data-src');
 
-    if (!title || !company) {
+    // URL-based fallback: slug format is /offre-demploi/company-city-contract-jobtitle/
+    // e.g. /offre-demploi/orange-senegal-dakar-cdi-developpeur-react/
+    let resolvedTitle = title;
+    let resolvedCompany = company;
+
+    if (!resolvedTitle || !resolvedCompany) {
+      const slug = url.split('/offre-demploi/')[1]?.replace(/\/$/, '') ?? '';
+      const parts = slug.split('-');
+      if (parts.length >= 4) {
+        // Heuristic: detect contract type position to split company from job title
+        const contractIndex = parts.findIndex((p) =>
+          /^(cdi|cdd|stage|freelance|alternance|interim|prestation)$/i.test(p),
+        );
+        if (contractIndex > 0) {
+          if (!resolvedCompany) {
+            resolvedCompany = parts
+              .slice(0, contractIndex - 1) // skip city (last part before contract)
+              .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+              .join(' ');
+          }
+          if (!resolvedTitle) {
+            resolvedTitle = parts
+              .slice(contractIndex + 1)
+              .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+              .join(' ');
+          }
+        } else if (!resolvedTitle) {
+          resolvedTitle = parts
+            .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+            .join(' ');
+        }
+      }
+    }
+
+    if (!resolvedTitle || !resolvedCompany) {
       this.logger.warn(`[${this.platform}] Skipping ${url} — missing title or company`);
       return null;
     }
 
-    const jobType = this.detectJobType(contractTypeText || title || description);
+    const jobType = this.detectJobType(contractTypeText || resolvedTitle || description);
     const publishedAt = this.parseDate(dateText);
     const companyLogoUrl = logoSrc
       ? logoSrc.startsWith('http')
@@ -115,8 +160,8 @@ export class EmploiDakarScraper extends BaseScraper {
       : undefined;
 
     return {
-      title,
-      company,
+      title: resolvedTitle,
+      company: resolvedCompany,
       description: description || `Offre d'emploi: ${title} chez ${company}`,
       city: locationText || 'Dakar',
       country: 'Sénégal',

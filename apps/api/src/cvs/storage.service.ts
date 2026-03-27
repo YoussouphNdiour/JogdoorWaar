@@ -11,7 +11,7 @@ export class StorageService {
   constructor(private readonly config: ConfigService) {
     const url = this.config.getOrThrow<string>('SUPABASE_URL');
     const key = this.config.getOrThrow<string>('SUPABASE_SERVICE_ROLE_KEY');
-    this.bucket = this.config.get<string>('SUPABASE_CVS_BUCKET', 'cvs');
+    this.bucket = this.config.get<string>('SUPABASE_STORAGE_BUCKET', 'cvs');
 
     this.supabase = createClient(url, key, {
       auth: { persistSession: false },
