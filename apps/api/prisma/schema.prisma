@@ -85,7 +85,7 @@ model UserCV {
   fileName         String
   fileSize         Int?
   textContent      String                     @db.Text
-  embedding        Unsupported("vector(1536)")?
+  embedding        Unsupported("vector(512)")?
   detectedSkills   String[]
   detectedJobTypes String[]
   sectorFit        String[]
@@ -160,7 +160,7 @@ model Job {
   isPremium          Boolean                    @default(false)
   viewCount          Int                        @default(0)
   clickCount         Int                        @default(0)
-  embedding          Unsupported("vector(1536)")?
+  embedding          Unsupported("vector(512)")?
   applications       Application[]
   savedBy            SavedJob[]
   matchScores        MatchScore[]

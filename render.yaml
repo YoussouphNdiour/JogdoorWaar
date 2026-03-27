@@ -73,7 +73,7 @@ services:
         value: '3001'
       - key: ANTHROPIC_API_KEY
         sync: false
-      - key: OPENAI_API_KEY
+      - key: VOYAGE_API_KEY
         sync: false
       - key: RESEND_API_KEY
         sync: false
@@ -141,7 +141,7 @@ services:
         value: production
       - key: ANTHROPIC_API_KEY
         sync: false
-      - key: OPENAI_API_KEY
+      - key: VOYAGE_API_KEY
         sync: false
       - key: MEILISEARCH_URL
         sync: false
