@@ -124,11 +124,15 @@ export class CvsService {
 
     // 7. Persist the embedding via raw SQL (pgvector unsupported type) — only if available
     if (embedding) {
-      await this.prisma.$executeRaw`
-        UPDATE "UserCV"
-        SET embedding = ${`[${embedding.join(',')}]`}::vector
-        WHERE id = ${cv.id}
-      `;
+      try {
+        await this.prisma.$executeRaw`
+          UPDATE "UserCV"
+          SET embedding = ${`[${embedding.join(',')}]`}::vector
+          WHERE id = ${cv.id}
+        `;
+      } catch (err) {
+        this.logger.warn(`Embedding storage failed for CV ${cv.id} — saved without vector`, err);
+      }
     }
 
     this.logger.log(`CV créé: ${cv.id} pour user: ${userId}`);
