@@ -100,6 +100,7 @@ export interface SafeUser {
   email: string;
   firstName: string;
   lastName: string;
+  phone?: string; // decrypted, only present when ENCRYPTION_KEY is set
   avatarUrl: string | null;
   role: UserRole;
   plan: Plan;
@@ -107,6 +108,8 @@ export interface SafeUser {
   whatsappVerified: boolean;
   isAnonymousMode: boolean;
   createdAt: Date;
+  title?: string; // from UserProfile.currentJobTitle
+  city?: string;  // from UserProfile.city
 }
 
 @Injectable()
@@ -437,19 +440,38 @@ export class AuthService {
   // ─── Get current user ─────────────────────────────────────────────────────
 
   async findById(userId: string): Promise<SafeUser> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { profile: true },
+    });
 
     if (!user) {
       throw new NotFoundException('Utilisateur introuvable');
     }
 
-    return this.toSafeUser(user);
+    return this.toSafeUser(user, user.profile ?? null);
   }
 
   // ─── Update profile ───────────────────────────────────────────────────────
 
   async updateMe(userId: string, dto: UpdateProfileDto): Promise<SafeUser> {
     const encryptedPhone = dto.phone ? encryptField(dto.phone) : undefined;
+
+    const hasProfileUpdate = dto.title !== undefined || dto.city !== undefined;
+    const profileUpsert = hasProfileUpdate
+      ? {
+          upsert: {
+            create: {
+              ...(dto.title !== undefined && { currentJobTitle: dto.title }),
+              ...(dto.city !== undefined && { city: dto.city }),
+            },
+            update: {
+              ...(dto.title !== undefined && { currentJobTitle: dto.title }),
+              ...(dto.city !== undefined && { city: dto.city }),
+            },
+          },
+        }
+      : undefined;
 
     const user = await this.prisma.user.update({
       where: { id: userId },
@@ -458,10 +480,12 @@ export class AuthService {
         ...(dto.lastName !== undefined && { lastName: dto.lastName.trim() }),
         ...(encryptedPhone !== undefined && { phone: encryptedPhone }),
         ...(dto.avatarUrl !== undefined && { avatarUrl: dto.avatarUrl }),
+        ...(profileUpsert !== undefined && { profile: profileUpsert }),
       },
+      include: { profile: true },
     });
 
-    return this.toSafeUser(user);
+    return this.toSafeUser(user, user.profile ?? null);
   }
 
   // ─── Token generation ─────────────────────────────────────────────────────
@@ -523,24 +547,38 @@ export class AuthService {
     return crypto.createHash('sha256').update(token).digest('hex');
   }
 
-  private toSafeUser(user: {
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    avatarUrl: string | null;
-    role: UserRole;
-    plan: Plan;
-    emailVerified: boolean;
-    whatsappVerified: boolean;
-    isAnonymousMode: boolean;
-    createdAt: Date;
-  }): SafeUser {
+  private toSafeUser(
+    user: {
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      phone: string | null;
+      avatarUrl: string | null;
+      role: UserRole;
+      plan: Plan;
+      emailVerified: boolean;
+      whatsappVerified: boolean;
+      isAnonymousMode: boolean;
+      createdAt: Date;
+    },
+    profile?: { currentJobTitle?: string | null; city?: string | null } | null,
+  ): SafeUser {
+    let phone: string | undefined;
+    if (user.phone) {
+      try {
+        phone = decryptField(user.phone);
+      } catch {
+        // ENCRYPTION_KEY not configured — return phone as undefined
+      }
+    }
+
     return {
       id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
+      phone,
       avatarUrl: user.avatarUrl,
       role: user.role,
       plan: user.plan,
@@ -548,6 +586,8 @@ export class AuthService {
       whatsappVerified: user.whatsappVerified,
       isAnonymousMode: user.isAnonymousMode,
       createdAt: user.createdAt,
+      title: profile?.currentJobTitle ?? undefined,
+      city: profile?.city ?? undefined,
     };
   }
 }

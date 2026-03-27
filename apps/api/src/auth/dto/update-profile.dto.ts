@@ -21,4 +21,14 @@ export class UpdateProfileDto {
   @IsString()
   @IsOptional()
   avatarUrl?: string;
+
+  @ApiPropertyOptional({ example: 'Développeur Full Stack' })
+  @IsString()
+  @IsOptional()
+  title?: string;
+
+  @ApiPropertyOptional({ example: 'Dakar' })
+  @IsString()
+  @IsOptional()
+  city?: string;
 }
