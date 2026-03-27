@@ -264,6 +264,62 @@ export class AuthController {
     );
   }
 
+  // ─── Gmail OAuth connect ──────────────────────────────────────────────────
+
+  @Get('gmail/connect')
+  @UseGuards(JwtAuthGuard, AuthGuard('google-gmail'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Initier la connexion Gmail (scope gmail.send) — redirige vers Google' })
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  gmailConnect(): void {}
+
+  @Public()
+  @Get('gmail/callback')
+  @UseGuards(AuthGuard('google-gmail'))
+  @ApiOperation({ summary: 'Callback Gmail OAuth — stocke les tokens et redirige vers le profil' })
+  async gmailCallback(
+    @Req() req: Request & { user: { profile: { id: string }; googleAccessToken: string; googleRefreshToken: string } },
+    @Res() res: Response,
+  ): Promise<void> {
+    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+
+    try {
+      // Find the user whose Google OAuthAccount matches this Google profile ID
+      const oauthAccount = await this.authService.findByGoogleProviderId(req.user.profile.id);
+      if (oauthAccount) {
+        await this.authService.storeGmailTokens(
+          oauthAccount.userId,
+          req.user.googleAccessToken,
+          req.user.googleRefreshToken,
+        );
+      }
+    } catch {
+      // Non-fatal — redirect with error flag
+      (res as unknown as Response).redirect(`${frontendUrl}/candidate/profile?gmailError=1`);
+      return;
+    }
+
+    (res as unknown as Response).redirect(`${frontendUrl}/candidate/profile?gmailConnected=1`);
+  }
+
+  @Get('gmail/disconnect')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Révoquer accès Gmail — supprime les tokens stockés' })
+  async gmailDisconnect(@CurrentUser() user: JwtPayload): Promise<void> {
+    await this.authService.revokeGmailTokens(user.sub);
+  }
+
+  @Get('gmail/status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Vérifier si Gmail est connecté pour cet utilisateur' })
+  async gmailStatus(@CurrentUser() user: JwtPayload): Promise<{ connected: boolean }> {
+    const connected = await this.authService.hasGmailAccess(user.sub);
+    return { connected };
+  }
+
   // ─── Cookie helpers ───────────────────────────────────────────────────────
 
   private setRefreshCookie(res: Response, token: string): void {

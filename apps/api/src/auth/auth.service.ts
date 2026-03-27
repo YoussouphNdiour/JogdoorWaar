@@ -339,6 +339,85 @@ export class AuthService {
     return { user: this.toSafeUser(user), ...tokens };
   }
 
+  // ─── OAuth account lookup ────────────────────────────────────────────────
+
+  async findByGoogleProviderId(
+    providerId: string,
+  ): Promise<{ userId: string } | null> {
+    return this.prisma.oAuthAccount.findUnique({
+      where: { provider_providerId: { provider: 'google', providerId } },
+      select: { userId: true },
+    });
+  }
+
+  // ─── Gmail OAuth tokens ───────────────────────────────────────────────────
+
+  /**
+   * Store (or update) encrypted Gmail tokens on the user's Google OAuthAccount.
+   * Called after the user authorises the gmail.send scope.
+   */
+  async storeGmailTokens(
+    userId: string,
+    googleAccessToken: string,
+    googleRefreshToken: string,
+  ): Promise<void> {
+    const encAccess = encryptField(googleAccessToken);
+    const encRefresh = encryptField(googleRefreshToken);
+
+    await this.prisma.oAuthAccount.updateMany({
+      where: { userId, provider: 'google' },
+      data: { accessToken: encAccess, refreshToken: encRefresh },
+    });
+
+    this.logger.log(`Gmail tokens stored for user ${userId}`);
+  }
+
+  /**
+   * Retrieve and decrypt Gmail tokens for the given user.
+   * Returns null if no Google account is linked or tokens are absent.
+   */
+  async getGmailTokens(
+    userId: string,
+  ): Promise<{ accessToken: string; refreshToken: string } | null> {
+    const account = await this.prisma.oAuthAccount.findFirst({
+      where: { userId, provider: 'google' },
+      select: { accessToken: true, refreshToken: true },
+    });
+
+    if (!account?.accessToken || !account.refreshToken) return null;
+
+    try {
+      return {
+        accessToken: decryptField(account.accessToken),
+        refreshToken: decryptField(account.refreshToken),
+      };
+    } catch {
+      this.logger.warn(`Failed to decrypt Gmail tokens for user ${userId}`);
+      return null;
+    }
+  }
+
+  /**
+   * Remove Gmail tokens (revoke Gmail access) for the given user.
+   */
+  async revokeGmailTokens(userId: string): Promise<void> {
+    await this.prisma.oAuthAccount.updateMany({
+      where: { userId, provider: 'google' },
+      data: { accessToken: null, refreshToken: null },
+    });
+  }
+
+  /**
+   * Check whether the user has active Gmail tokens stored.
+   */
+  async hasGmailAccess(userId: string): Promise<boolean> {
+    const account = await this.prisma.oAuthAccount.findFirst({
+      where: { userId, provider: 'google', NOT: { accessToken: null } },
+      select: { id: true },
+    });
+    return account !== null;
+  }
+
   // ─── Password reset ───────────────────────────────────────────────────────
 
   async forgotPassword(email: string): Promise<void> {

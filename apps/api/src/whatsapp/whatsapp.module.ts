@@ -6,9 +6,10 @@ import { WaSenderApiService } from './wasender-api.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AiModule } from '../ai/ai.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [PrismaModule, AiModule, NotificationsModule],
+  imports: [PrismaModule, AiModule, NotificationsModule, AuthModule],
   controllers: [WhatsAppController],
   providers: [WhatsAppBotService, WhatsAppStateService, WaSenderApiService],
   exports: [WaSenderApiService], // AlertsModule uses this to send proactive messages

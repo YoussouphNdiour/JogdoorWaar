@@ -7,6 +7,8 @@ import {
 import { ApplicationChannel } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../notifications/email.service';
+import { GmailService } from '../notifications/gmail.service';
+import { AuthService } from '../auth/auth.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { UpdateApplicationDto } from './dto/update-application.dto';
 
@@ -17,6 +19,8 @@ export class ApplicationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly gmailService: GmailService,
+    private readonly authService: AuthService,
   ) {}
 
   async findAll(userId: string) {
@@ -35,10 +39,15 @@ export class ApplicationsService {
       jobTitle: a.job.title,
       company: a.job.company,
       city: a.job.city ?? 'Dakar',
+      sourceUrl: a.job.sourceUrl,
       appliedAt: a.appliedAt?.toISOString() ?? a.createdAt.toISOString(),
       status: a.status,
       channel: a.appliedVia,
       cvUsed: a.cv?.name ?? '',
+      coverLetter: a.generatedCoverLetter ?? undefined,
+      recruiterEmailSentTo: a.recruiterEmailSentTo ?? undefined,
+      emailSentAt: a.emailSentAt?.toISOString() ?? undefined,
+      emailResendId: a.emailResendId ?? undefined,
       notes: a.notes ?? undefined,
       interviewDate: a.interviewDate?.toISOString() ?? undefined,
       offerAmount: a.offerAmount ?? undefined,
@@ -71,6 +80,7 @@ export class ApplicationsService {
 
     // Fire-and-forget: send email to recruiter (non-blocking)
     this.sendApplicationEmailToRecruiter(
+      app.id,
       userId,
       dto.jobId,
       dto.cvId ?? null,
@@ -133,6 +143,7 @@ export class ApplicationsService {
   // ─── Email helper ──────────────────────────────────────────────────────────
 
   private async sendApplicationEmailToRecruiter(
+    applicationId: string,
     userId: string,
     jobId: string,
     cvId: string | null,
@@ -182,7 +193,7 @@ export class ApplicationsService {
     }
 
     const cvLabel = cv?.label ?? cv?.name;
-    await this.emailService.sendApplicationEmail({
+    const emailParams = {
       to: recruiterEmail,
       candidateName: `${user.firstName} ${user.lastName}`,
       candidateEmail: user.email,
@@ -191,6 +202,35 @@ export class ApplicationsService {
       cvUrl: cv?.fileUrl ?? undefined,
       cvFileName: cvLabel ? `${cvLabel}.pdf` : 'cv.pdf',
       coverLetter: coverLetter ?? undefined,
+    };
+
+    // Try Gmail first (user's own account), fall back to Resend (JDW account)
+    let emailId: string;
+    const gmailTokens = await this.authService.getGmailTokens(userId);
+    if (gmailTokens) {
+      try {
+        emailId = await this.gmailService.sendApplicationEmail({
+          ...emailParams,
+          googleAccessToken: gmailTokens.accessToken,
+          googleRefreshToken: gmailTokens.refreshToken,
+        });
+        this.logger.log(`Application email sent via Gmail for user ${userId}`);
+      } catch (err) {
+        this.logger.warn(`Gmail send failed, falling back to Resend: ${err instanceof Error ? err.message : String(err)}`);
+        emailId = await this.emailService.sendApplicationEmail(emailParams);
+      }
+    } else {
+      emailId = await this.emailService.sendApplicationEmail(emailParams);
+    }
+
+    // Store proof of sending on the application record
+    await this.prisma.application.update({
+      where: { id: applicationId },
+      data: {
+        recruiterEmailSentTo: recruiterEmail,
+        emailSentAt: new Date(),
+        emailResendId: emailId,
+      },
     });
   }
 }

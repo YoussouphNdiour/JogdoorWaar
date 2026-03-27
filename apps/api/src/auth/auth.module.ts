@@ -9,13 +9,14 @@ import { OptionalJwtGuard } from './guards/optional-jwt.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
-// GoogleStrategy is registered only when GOOGLE_CLIENT_ID is configured,
-// so local-only development doesn't crash on missing OAuth credentials.
+// GoogleStrategy and GoogleGmailStrategy are registered only when GOOGLE_CLIENT_ID
+// is configured, so local-only development doesn't crash on missing OAuth credentials.
 const googleStrategyProviders = process.env.GOOGLE_CLIENT_ID
   ? [
-      // Lazy import to avoid a startup error when the env var is absent
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       require('./strategies/google.strategy').GoogleStrategy,
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require('./strategies/google-gmail.strategy').GoogleGmailStrategy,
     ]
   : [];
 

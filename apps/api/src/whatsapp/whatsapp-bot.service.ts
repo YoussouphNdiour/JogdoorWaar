@@ -5,6 +5,8 @@ import { CvSelectorService } from '../ai/cv-selector.service';
 import { WaSenderApiService } from './wasender-api.service';
 import { WhatsAppStateService } from './whatsapp-state.service';
 import { EmailService } from '../notifications/email.service';
+import { GmailService } from '../notifications/gmail.service';
+import { AuthService } from '../auth/auth.service';
 import { WhatsAppBotState, Plan } from '@prisma/client';
 import { SessionData } from './interfaces/bot-context.interface';
 import { WaSenderMessage } from './dto/wasender-webhook.dto';
@@ -39,6 +41,8 @@ export class WhatsAppBotService {
     private readonly aiService: AiService,
     private readonly cvSelector: CvSelectorService,
     private readonly emailService: EmailService,
+    private readonly gmailService: GmailService,
+    private readonly authService: AuthService,
   ) {}
 
   // ─── Entry point called by controller (fire-and-forget) ──────────
@@ -442,7 +446,7 @@ export class WhatsAppBotService {
     if (!recruiterEmail) return;
 
     const cvLabel = cv?.label ?? cv?.name;
-    const emailId = await this.emailService.sendApplicationEmail({
+    const emailParams = {
       to: recruiterEmail,
       candidateName: `${user.firstName} ${user.lastName}`,
       candidateEmail: user.email,
@@ -451,7 +455,26 @@ export class WhatsAppBotService {
       cvUrl: cv?.fileUrl ?? undefined,
       cvFileName: cvLabel ? `${cvLabel}.pdf` : 'cv.pdf',
       coverLetter: coverLetter ?? undefined,
-    });
+    };
+
+    // Try Gmail first (user's own account), fall back to Resend (JDW account)
+    let emailId: string;
+    const gmailTokens = await this.authService.getGmailTokens(userId);
+    if (gmailTokens) {
+      try {
+        emailId = await this.gmailService.sendApplicationEmail({
+          ...emailParams,
+          googleAccessToken: gmailTokens.accessToken,
+          googleRefreshToken: gmailTokens.refreshToken,
+        });
+        this.logger.log(`WA application email sent via Gmail for user ${userId}`);
+      } catch (err) {
+        this.logger.warn(`Gmail send failed, falling back to Resend: ${err instanceof Error ? err.message : String(err)}`);
+        emailId = await this.emailService.sendApplicationEmail(emailParams);
+      }
+    } else {
+      emailId = await this.emailService.sendApplicationEmail(emailParams);
+    }
 
     await this.prisma.application.update({
       where: { id: applicationId },
