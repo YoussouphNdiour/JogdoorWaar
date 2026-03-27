@@ -106,7 +106,7 @@ function PaymentModal({
     try {
       const result = await apiFetch<{ redirectUrl?: string; status: string }>('/payments/initiate', {
         method: 'POST',
-        body: JSON.stringify({ plan, method, phone: phone || undefined }),
+        body: JSON.stringify({ plan, paymentMethod: method, phone: phone || undefined }),
       });
       if (result.redirectUrl) {
         window.location.href = result.redirectUrl;
