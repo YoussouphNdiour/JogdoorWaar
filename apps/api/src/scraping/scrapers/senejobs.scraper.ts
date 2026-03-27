@@ -9,9 +9,8 @@ import { BaseScraper } from './base.scraper';
 /**
  * SeneJobsScraper
  *
- * Target : https://www.senejobs.com/offres-d-emploi
- * Pagination : query param ?page=N (1-indexed)
- * Max pages   : 3
+ * ⚠️  senejobs.com is offline (HTTP 404 on root) as of 2026-03-27.
+ *     Scraper is disabled until the domain comes back.
  */
 @Injectable()
 export class SeneJobsScraper extends BaseScraper {
@@ -28,6 +27,13 @@ export class SeneJobsScraper extends BaseScraper {
   // ─── fetchJobUrls ────────────────────────────────────────────────────────────
 
   protected async fetchJobUrls(page: number): Promise<string[]> {
+    // senejobs.com is currently offline — skip silently
+    if (page === 0) {
+      this.logger.warn('[SENEJOBS] Site offline — scraping skipped');
+    }
+    return [];
+
+    // Dead code preserved for when the site comes back:
     if (page >= this.MAX_PAGES) {
       return [];
     }

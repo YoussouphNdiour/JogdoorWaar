@@ -9,11 +9,14 @@ import { BaseScraper } from './base.scraper';
 @Injectable()
 export class SenjobScraper extends BaseScraper {
   protected readonly platform = SourcePlatform.SENJOB;
-  protected readonly baseUrl = 'https://www.senjob.com';
+  // Site migrated from www.senjob.com/emploi → senjob.com/sn/offres-d-emploi.php
+  protected readonly baseUrl = 'https://senjob.com/sn';
   protected readonly logger = new Logger(SenjobScraper.name);
 
   /** BullMQ cron schedule — every 2 hours */
   static readonly cronSchedule = '0 */2 * * *';
+
+  private readonly MAX_PAGES = 8;
 
   constructor(prisma: PrismaService, deduplication: DeduplicationService) {
     super(prisma, deduplication);
@@ -22,9 +25,10 @@ export class SenjobScraper extends BaseScraper {
   // ─── fetchJobUrls ────────────────────────────────────────────────────────────
 
   protected async fetchJobUrls(page: number): Promise<string[]> {
-    // senjob.com uses ?page=N query param (1-indexed)
+    if (page >= this.MAX_PAGES) return [];
+
     const pageParam = page + 1;
-    const listUrl = `${this.baseUrl}/emploi?page=${pageParam}`;
+    const listUrl = `${this.baseUrl}/offres-d-emploi.php?page=${pageParam}`;
 
     this.logger.debug(`Fetching listing page ${pageParam}: ${listUrl}`);
 
@@ -32,36 +36,20 @@ export class SenjobScraper extends BaseScraper {
     try {
       html = await this.fetchHtml(listUrl);
     } catch (err) {
-      this.logger.error(`Failed to fetch listing page ${pageParam}`, err);
+      this.logger.error(`Failed to fetch listing page ${pageParam}`);
       return [];
     }
 
     const $ = cheerio.load(html);
     const urls: string[] = [];
 
-    // senjob.com patterns: .job-item a, .job-list-item a, article.job a
-    $('.job-item a[href], .job-list-item a[href], article.job a[href], .offre a[href]').each(
-      (_i, el) => {
-        const href = $(el).attr('href');
-        if (!href) return;
-        const absolute = href.startsWith('http') ? href : `${this.baseUrl}${href}`;
-        if (!urls.includes(absolute)) urls.push(absolute);
-      },
-    );
-
-    // Fallback: anchors whose href contains /emploi/ or /offre/
-    if (urls.length === 0) {
-      $('a[href]').each((_i, el) => {
-        const href = $(el).attr('href') ?? '';
-        if (
-          (href.includes('/emploi/') || href.includes('/offre/')) &&
-          href !== `${this.baseUrl}/emploi`
-        ) {
-          const absolute = href.startsWith('http') ? href : `${this.baseUrl}${href}`;
-          if (!urls.includes(absolute)) urls.push(absolute);
-        }
-      });
-    }
+    // senjob.com/sn: job links follow pattern /sn/jobseekers/slug_e_ID.html
+    $('a[href*="/jobseekers/"]').each((_i, el) => {
+      const href = $(el).attr('href');
+      if (!href) return;
+      const absolute = href.startsWith('http') ? href : `https://senjob.com${href}`;
+      if (!urls.includes(absolute)) urls.push(absolute);
+    });
 
     this.logger.debug(`[${this.platform}] Page ${pageParam} — found ${urls.length} URLs`);
     return urls;
@@ -72,33 +60,35 @@ export class SenjobScraper extends BaseScraper {
   protected async parseJobDetail(html: string, url: string): Promise<RawJob | null> {
     const $ = cheerio.load(html);
 
+    // senjob.com/sn uses a table-based detail page
     const title =
-      $('h1.job-title, h1.titre, h1.entry-title, .job-title').first().text().trim() ||
-      $('h1').first().text().trim();
+      $('h1, h2.titre-offre, .titre-poste, td:contains("Intitulé") + td').first().text().trim() ||
+      $('title').text().replace(' - Senjob', '').trim();
 
     const company =
-      $('.company, .entreprise, .employer, .recruteur').first().text().trim();
+      $('td:contains("Entreprise") + td, .nom-entreprise, .company-name').first().text().trim() ||
+      $('.recruteur, .employer').first().text().trim();
 
     const description =
-      $('.description, .job-description, .content, .entry-content').first().text().trim() ||
-      $('article, main').first().text().trim();
+      $('.description-offre, .contenu-offre, td.description, #description').first().text().trim() ||
+      $('table').last().text().trim();
 
     const locationText =
-      $('.location, .lieu, .ville, .localisation, .city').first().text().trim();
+      $('td:contains("Lieu") + td, td:contains("Ville") + td, .ville, .location').first().text().trim();
 
     const contractTypeText =
-      $('.contract, .type-contrat, .contrat, .job-type').first().text().trim();
+      $('td:contains("Type de contrat") + td, td:contains("Contrat") + td, .type-contrat').first().text().trim();
 
     const dateText =
-      $('time, .date, .publication-date, .posted-date').first().text().trim();
+      $('td:contains("Date") + td, .date-publication, time').first().text().trim();
 
     const sectorText =
-      $('.sector, .secteur, .domaine').first().text().trim();
+      $('td:contains("Secteur") + td, td:contains("Domaine") + td, .secteur').first().text().trim();
 
     const salaryText =
-      $('.salary, .salaire, .remuneration').first().text().trim();
+      $('td:contains("Salaire") + td, .salaire, .remuneration').first().text().trim();
 
-    const logoEl = $('img.logo, .company-logo img, .employer-logo img').first();
+    const logoEl = $('img.logo, .company-logo img, .employer-logo img, img[src*="logo"]').first();
     const logoSrc = logoEl.attr('src') ?? logoEl.attr('data-src');
 
     if (!title || !company) {
@@ -111,7 +101,7 @@ export class SenjobScraper extends BaseScraper {
     const companyLogoUrl = logoSrc
       ? logoSrc.startsWith('http')
         ? logoSrc
-        : `${this.baseUrl}${logoSrc}`
+        : `https://senjob.com${logoSrc}`
       : undefined;
 
     return {
