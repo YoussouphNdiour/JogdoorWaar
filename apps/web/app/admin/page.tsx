@@ -120,10 +120,12 @@ function userInitials(u: AdminUser): string {
 function DashboardTab() {
   const [platformStats, setPlatformStats] = useState<PlatformStats | null>(null);
   const [recentUsers, setRecentUsers] = useState<AdminUser[]>([]);
+  const [revenueHistory, setRevenueHistory] = useState<RevenueMonth[]>([]);
 
   useEffect(() => {
     getAdminStats().then(setPlatformStats).catch(console.error);
     getAdminUsers({ page: 1, limit: 5 }).then((r) => setRecentUsers(r?.data ?? [])).catch(console.error);
+    getAdminRevenue().then(setRevenueHistory).catch(console.error);
   }, []);
 
   const stats = [
@@ -165,39 +167,38 @@ function DashboardTab() {
               <p className="font-dm text-xs text-gray-400">FCFA ce mois</p>
             </div>
           </div>
-          {/* Bar chart — static illustration until revenue history API exists */}
+          {/* Bar chart — real data from /admin/subscriptions/revenue */}
           <div className="flex items-end gap-2 h-32">
-            {[
-              { month: 'Oct', amount: 45000 },
-              { month: 'Nov', amount: 87500 },
-              { month: 'Déc', amount: 122000 },
-              { month: 'Jan', amount: 98000 },
-              { month: 'Fév', amount: 143500 },
-              { month: 'Mar', amount: platformStats?.monthlyRevenueFcfa ?? 189000 },
-            ].map((bar) => {
-              const maxAmount = Math.max(45000, 87500, 122000, 98000, 143500, platformStats?.monthlyRevenueFcfa ?? 189000);
-              const heightPct = (bar.amount / maxAmount) * 100;
-              const isCurrent = bar.month === 'Mar';
-              return (
-                <div key={bar.month} className="flex-1 flex flex-col items-center gap-1">
-                  <div className="w-full relative group" style={{ height: '112px' }}>
-                    <div
-                      className={`absolute bottom-0 w-full rounded-t-lg transition-all ${
-                        isCurrent ? 'bg-[#E8580A]' : 'bg-[#1B4332]/20 group-hover:bg-[#1B4332]/40'
-                      }`}
-                      style={{ height: `${heightPct}%` }}
-                    />
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 bg-[#1B4332] text-white text-[9px] font-dm px-2 py-0.5 rounded-lg whitespace-nowrap pointer-events-none transition-opacity z-10">
-                      {bar.amount.toLocaleString('fr-FR')} FCFA
+            {revenueHistory.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center">
+                <p className="font-dm text-xs text-gray-400">Chargement…</p>
+              </div>
+            ) : (() => {
+              const maxAmount = Math.max(...revenueHistory.map((r) => r.total), 1);
+              const lastIdx = revenueHistory.length - 1;
+              return revenueHistory.map((bar, idx) => {
+                const heightPct = (bar.total / maxAmount) * 100;
+                const isCurrent = idx === lastIdx;
+                return (
+                  <div key={bar.month} className="flex-1 flex flex-col items-center gap-1">
+                    <div className="w-full relative group" style={{ height: '112px' }}>
+                      <div
+                        className={`absolute bottom-0 w-full rounded-t-lg transition-all ${
+                          isCurrent ? 'bg-[#E8580A]' : 'bg-[#1B4332]/20 group-hover:bg-[#1B4332]/40'
+                        }`}
+                        style={{ height: `${heightPct}%` }}
+                      />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 bg-[#1B4332] text-white text-[9px] font-dm px-2 py-0.5 rounded-lg whitespace-nowrap pointer-events-none transition-opacity z-10">
+                        {bar.total.toLocaleString('fr-FR')} FCFA
+                      </div>
                     </div>
+                    <span className={`font-dm text-[10px] ${isCurrent ? 'text-[#E8580A] font-bold' : 'text-gray-400'}`}>
+                      {bar.month}
+                    </span>
                   </div>
-                  <span className={`font-dm text-[10px] ${isCurrent ? 'text-[#E8580A] font-bold' : 'text-gray-400'}`}>
-                    {bar.month}
-                  </span>
-                </div>
-              );
-            })}
+                );
+              });
+            })()}
           </div>
         </div>
 
@@ -514,6 +515,26 @@ function JobsTab() {
   );
 }
 
+/** Real URLs for each scraped platform. */
+const PLATFORM_URLS: Record<string, string> = {
+  EMPLOI_SENEGAL: 'emploisenegal.com',
+  EMPLOI_DAKAR: 'emploidakar.com',
+  SENJOB: 'senjob.com',
+  EXPAT_DAKAR: 'expat-dakar.com',
+  SENEJOBS: 'senejobs.com',
+  AFRIRH: 'afrirh.com',
+  EMPLOI_SEN: 'emploi-sen.com',
+  SENINTERIM: 'seninterim.sn',
+  SENRH: 'senrh.sn',
+  LINKEDIN: 'linkedin.com/jobs',
+};
+
+function deriveScraperStatus(lastScraped: string | null): ScrapingSource['status'] {
+  if (!lastScraped) return 'idle';
+  const ageHours = (Date.now() - new Date(lastScraped).getTime()) / 3_600_000;
+  return ageHours < 3 ? 'active' : 'idle';
+}
+
 function ScrapingTab() {
   const [sources, setSources] = useState<ScrapingSource[]>([]);
   const [running, setRunning] = useState<Set<string>>(new Set());
@@ -525,15 +546,15 @@ function ScrapingTab() {
           stats.map((s) => ({
             id: s.platform,
             name: s.platform,
-            url: `${s.platform}.sn`,
+            url: PLATFORM_URLS[s.platform] ?? `${s.platform.toLowerCase()}.sn`,
             totalJobs: s.total,
             lastScraped: s.lastScraped,
-            status: 'active' as const,
+            status: running.has(s.platform) ? 'running' : deriveScraperStatus(s.lastScraped),
           })),
         ),
       )
       .catch(console.error);
-  }, []);
+  }, [running]);
 
   async function triggerScraping(id: string) {
     setRunning((prev) => new Set(prev).add(id));

@@ -122,10 +122,12 @@ function ApplicationCard({
   app,
   expanded,
   onToggle,
+  onDelete,
 }: {
   app: Application;
   expanded: boolean;
   onToggle: () => void;
+  onDelete: (id: string) => void;
 }) {
   const cfg = STATUS_CONFIG[app.status];
 
@@ -211,10 +213,10 @@ function ApplicationCard({
           )}
 
           <div className="flex gap-2 pt-1">
-            <button className="flex-1 text-xs font-dm font-medium py-1.5 px-3 rounded-xl bg-[#E8580A]/10 text-[#E8580A] hover:bg-[#E8580A]/20 transition-colors">
-              Modifier
-            </button>
-            <button className="flex-1 text-xs font-dm font-medium py-1.5 px-3 rounded-xl bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+            <button
+              onClick={() => onDelete(app.id)}
+              className="flex-1 text-xs font-dm font-medium py-1.5 px-3 rounded-xl bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors"
+            >
               Supprimer
             </button>
           </div>
@@ -229,11 +231,13 @@ function KanbanColumn({
   apps,
   expandedId,
   onToggle,
+  onDelete,
 }: {
   status: ApplicationStatus;
   apps: Application[];
   expandedId: string | null;
   onToggle: (id: string) => void;
+  onDelete: (id: string) => void;
 }) {
   const cfg = STATUS_CONFIG[status];
 
@@ -261,6 +265,7 @@ function KanbanColumn({
               app={app}
               expanded={expandedId === app.id}
               onToggle={() => onToggle(app.id)}
+              onDelete={onDelete}
             />
           ))
         )}
@@ -286,6 +291,12 @@ export default function ApplicationsPage() {
 
   function handleToggle(id: string) {
     setExpandedId((prev) => (prev === id ? null : id));
+  }
+
+  async function handleDelete(id: string) {
+    await apiFetch(`/applications/${id}`, { method: 'DELETE' }).catch(() => {});
+    setApplications((prev) => prev.filter((a) => a.id !== id));
+    if (expandedId === id) setExpandedId(null);
   }
 
   const filtered = applications.filter(
@@ -392,6 +403,7 @@ export default function ApplicationsPage() {
               apps={grouped[status]}
               expandedId={expandedId}
               onToggle={handleToggle}
+              onDelete={handleDelete}
             />
           ))}
         </div>

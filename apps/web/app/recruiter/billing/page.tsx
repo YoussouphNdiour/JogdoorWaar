@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { apiFetch } from '../../../lib/api/client';
+import { PLAN_PRICES_DISPLAY } from '../../../lib/constants';
 
 type PaymentMethod = 'WAVE' | 'ORANGE_MONEY' | 'STRIPE';
 
@@ -52,7 +53,7 @@ function PaymentModal({ onClose }: { onClose: () => void }) {
         <div className="bg-savane px-6 py-5 flex items-center justify-between">
           <div>
             <h2 className="font-syne text-white font-bold text-lg">Abonnement Recruteur</h2>
-            <p className="font-dm text-white/60 text-sm">15 000 FCFA / mois</p>
+            <p className="font-dm text-white/60 text-sm">{PLAN_PRICES_DISPLAY.RECRUITER} FCFA / mois</p>
           </div>
           <button
             onClick={onClose}
@@ -146,7 +147,7 @@ function PaymentModal({ onClose }: { onClose: () => void }) {
                 Traitement...
               </span>
             ) : (
-              'Confirmer — 15 000 FCFA'
+              `Confirmer — ${PLAN_PRICES_DISPLAY.RECRUITER} FCFA`
             )}
           </button>
         </div>
@@ -170,7 +171,7 @@ export default function RecruiterBillingPage() {
         <div>
           <p className="font-dm text-xs text-savane/50">Plan actuel</p>
           <p className="font-syne text-xl font-bold text-savane mt-0.5">Recruteur</p>
-          <p className="font-dm text-xs text-savane/50 mt-0.5">15 000 FCFA / mois</p>
+          <p className="font-dm text-xs text-savane/50 mt-0.5">{PLAN_PRICES_DISPLAY.RECRUITER} FCFA / mois</p>
         </div>
         <button
           onClick={() => setShowModal(true)}

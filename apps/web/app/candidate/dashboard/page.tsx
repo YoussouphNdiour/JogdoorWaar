@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Bell, Briefcase, FileText, TrendingUp, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { apiFetch } from '../../../lib/api/client';
+import { PLAN_PRICES_DISPLAY } from '../../../lib/constants';
 import type { JobListItem } from '@jdw/shared-types';
 
 interface UserProfile {
@@ -258,7 +259,7 @@ export default function DashboardPage() {
                 href="/candidate/billing"
                 className="block text-center bg-terracotta text-white py-2 rounded-xl font-dm text-sm font-medium hover:bg-terracotta/90 transition-colors"
               >
-                3 500 FCFA/mois →
+                {PLAN_PRICES_DISPLAY.PREMIUM} FCFA/mois →
               </Link>
             </div>
           )}

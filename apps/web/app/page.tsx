@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Search, Zap, Bell, MessageCircle, ArrowRight, CheckCircle } from 'lucide-react';
+import { PLAN_PRICES_DISPLAY } from '../lib/constants';
 
 export default function LandingPage() {
   return (
@@ -178,7 +179,7 @@ export default function LandingPage() {
               },
               {
                 name: 'Premium',
-                price: '3 500',
+                price: PLAN_PRICES_DISPLAY.PREMIUM,
                 period: 'FCFA/mois',
                 features: ['Tout le gratuit', 'Alertes illimitées', 'CVs illimités', 'Score matching détaillé', '10 CVs IA/mois', '10 lettres/mois', 'Mode anonyme', 'Coach entretien (5/mois)'],
                 cta: 'Passer Premium',
@@ -186,7 +187,7 @@ export default function LandingPage() {
               },
               {
                 name: 'Recruteur',
-                price: '15 000',
+                price: PLAN_PRICES_DISPLAY.RECRUITER,
                 period: 'FCFA/mois',
                 features: ['10 offres/mois', 'Analytics candidatures', 'Accès candidats', 'Boost offres', 'Support prioritaire'],
                 cta: 'Recruter maintenant',

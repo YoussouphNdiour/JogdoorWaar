@@ -45,6 +45,8 @@ export default function JobDetailPage() {
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -53,6 +55,23 @@ export default function JobDetailPage() {
       .catch(() => setError('Offre introuvable.'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const handleToggleSave = async () => {
+    setSaving(true);
+    try {
+      if (saved) {
+        await apiFetch(`/jobs/${id}/save`, { method: 'DELETE' });
+        setSaved(false);
+      } else {
+        await apiFetch(`/jobs/${id}/save`, { method: 'POST' });
+        setSaved(true);
+      }
+    } catch {
+      // silent
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleApply = async () => {
     setApplying(true);
@@ -232,9 +251,17 @@ export default function JobDetailPage() {
               Voir l&apos;offre originale
             </a>
 
-            <button className="w-full flex items-center justify-center gap-2 border border-sand-dark py-2.5 rounded-xl font-dm text-sm text-savane hover:bg-sand-dark transition-colors">
-              <Bookmark className="h-4 w-4" />
-              Sauvegarder
+            <button
+              onClick={handleToggleSave}
+              disabled={saving}
+              className={`w-full flex items-center justify-center gap-2 border py-2.5 rounded-xl font-dm text-sm transition-colors disabled:opacity-50 ${
+                saved
+                  ? 'border-terracotta bg-terracotta/10 text-terracotta'
+                  : 'border-sand-dark text-savane hover:bg-sand-dark'
+              }`}
+            >
+              <Bookmark className={`h-4 w-4 ${saved ? 'fill-terracotta' : ''}`} />
+              {saved ? 'Sauvegardé' : 'Sauvegarder'}
             </button>
           </div>
 

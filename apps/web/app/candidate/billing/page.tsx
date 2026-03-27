@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../../../lib/api/client';
+import { PLAN_PRICES, PLAN_PRICES_DISPLAY } from '../../../lib/constants';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -95,7 +96,7 @@ function PaymentModal({
   const [loading, setLoading] = useState(false);
   const [payError, setPayError] = useState('');
 
-  const price = plan === 'PREMIUM' ? 3500 : 15000;
+  const price = plan === 'PREMIUM' ? PLAN_PRICES.PREMIUM : PLAN_PRICES.RECRUITER;
   const planLabel = plan === 'PREMIUM' ? 'Premium' : 'Recruteur';
 
   async function handleConfirm() {
@@ -283,7 +284,7 @@ function PlanCard({
     },
     PREMIUM: {
       label: 'Premium',
-      price: '3 500',
+      price: PLAN_PRICES_DISPLAY.PREMIUM,
       description: 'Pour les candidats sérieux',
       ctaLabel: isCurrent ? 'Plan actuel' : 'Passer à Premium',
       ctaDisabled: isCurrent,
@@ -292,7 +293,7 @@ function PlanCard({
     },
     RECRUITER: {
       label: 'Recruteur',
-      price: '15 000',
+      price: PLAN_PRICES_DISPLAY.RECRUITER,
       description: 'Pour publier des offres et recruter',
       ctaLabel: isCurrent ? 'Plan actuel' : 'Passer Recruteur',
       ctaDisabled: isCurrent,
