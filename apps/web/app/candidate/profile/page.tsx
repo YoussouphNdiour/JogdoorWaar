@@ -78,7 +78,6 @@ export default function ProfilePage() {
       formData.append('label', file.name.replace('.pdf', ''));
       const newCv = await apiFetch<CvFile>('/cvs/upload', {
         method: 'POST',
-        headers: {},
         body: formData,
       });
       setCvs((prev) => [...prev, newCv]);

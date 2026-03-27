@@ -1,7 +1,9 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  // Don't set Content-Type for FormData — browser must set it (with multipart boundary)
+  const headers: Record<string, string> =
+    init?.body instanceof FormData ? {} : { 'Content-Type': 'application/json' };
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('access_token');
     if (token && token !== 'undefined' && token !== 'null') {
