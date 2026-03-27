@@ -21,10 +21,15 @@ interface Application {
   jobTitle: string;
   company: string;
   city: string;
+  sourceUrl?: string;
   appliedAt: string;
   status: ApplicationStatus;
   channel: Channel;
   cvUsed: string;
+  coverLetter?: string;
+  recruiterEmailSentTo?: string;
+  emailSentAt?: string;
+  emailResendId?: string;
   notes?: string;
   interviewDate?: string;
   offerAmount?: number;
@@ -178,6 +183,50 @@ function ApplicationCard({
           className="px-4 pb-4 border-t border-gray-100 pt-3 space-y-2"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Email proof */}
+          {app.recruiterEmailSentTo ? (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-3 space-y-1">
+              <div className="flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span className="text-[10px] font-dm font-semibold text-green-700 uppercase tracking-wide">Email envoyé au recruteur</span>
+                <span className="ml-auto text-[10px] font-dm font-bold text-green-600 bg-green-100 px-1.5 py-0.5 rounded-full">✓ Accusé</span>
+              </div>
+              <p className="text-xs font-dm text-green-800 font-medium truncate">{app.recruiterEmailSentTo}</p>
+              {app.emailSentAt && (
+                <p className="text-[10px] font-dm text-green-600">
+                  le {new Date(app.emailSentAt).toLocaleDateString('fr-SN', { day: 'numeric', month: 'short', year: 'numeric' })} à {new Date(app.emailSentAt).toLocaleTimeString('fr-SN', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              )}
+              {app.emailResendId && (
+                <p className="text-[10px] font-dm text-green-500/80 font-mono truncate">ID : {app.emailResendId}</p>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-[10px] font-dm text-gray-400">
+              <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              Aucun email recruteur trouvé dans l&apos;offre
+            </div>
+          )}
+
+          {/* Cover letter */}
+          {app.coverLetter && (
+            <details className="group">
+              <summary className="flex items-center gap-1.5 cursor-pointer text-[10px] font-dm font-semibold text-[#E8580A] uppercase tracking-wide list-none">
+                <svg className="w-3 h-3 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+                Lettre de motivation
+              </summary>
+              <div className="mt-2 bg-[#FFF7F3] border border-[#E8580A]/20 rounded-xl p-3 text-xs font-dm text-[#1B4332]/80 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto">
+                {app.coverLetter}
+              </div>
+            </details>
+          )}
+
           {app.interviewDate && (
             <div className="flex items-center gap-2 text-xs font-dm text-[#1B4332]/70">
               <svg className="w-3.5 h-3.5 text-[#F5C842]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -213,6 +262,17 @@ function ApplicationCard({
           )}
 
           <div className="flex gap-2 pt-1">
+            {app.sourceUrl && (
+              <a
+                href={app.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="flex-1 text-center text-xs font-dm font-medium py-1.5 px-3 rounded-xl bg-[#1B4332]/10 text-[#1B4332] hover:bg-[#1B4332]/20 transition-colors"
+              >
+                Voir l&apos;offre →
+              </a>
+            )}
             <button
               onClick={() => onDelete(app.id)}
               className="flex-1 text-xs font-dm font-medium py-1.5 px-3 rounded-xl bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors"

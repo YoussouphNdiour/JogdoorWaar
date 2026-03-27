@@ -354,6 +354,7 @@ export class WhatsAppBotService {
 
       // Fire-and-forget: send email to recruiter
       this.sendApplicationEmailToRecruiter(
+        application.id,
         session.userId,
         session.context.jobId!,
         session.context.selectedCvId ?? null,
@@ -398,6 +399,7 @@ export class WhatsAppBotService {
 
   // ─── Email to recruiter ───────────────────────────────────────────
   private async sendApplicationEmailToRecruiter(
+    applicationId: string,
     userId: string,
     jobId: string,
     cvId: string | null,
@@ -440,7 +442,7 @@ export class WhatsAppBotService {
     if (!recruiterEmail) return;
 
     const cvLabel = cv?.label ?? cv?.name;
-    await this.emailService.sendApplicationEmail({
+    const emailId = await this.emailService.sendApplicationEmail({
       to: recruiterEmail,
       candidateName: `${user.firstName} ${user.lastName}`,
       candidateEmail: user.email,
@@ -449,6 +451,15 @@ export class WhatsAppBotService {
       cvUrl: cv?.fileUrl ?? undefined,
       cvFileName: cvLabel ? `${cvLabel}.pdf` : 'cv.pdf',
       coverLetter: coverLetter ?? undefined,
+    });
+
+    await this.prisma.application.update({
+      where: { id: applicationId },
+      data: {
+        recruiterEmailSentTo: recruiterEmail,
+        emailSentAt: new Date(),
+        emailResendId: emailId,
+      },
     });
   }
 
