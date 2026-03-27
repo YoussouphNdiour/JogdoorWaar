@@ -1,8 +1,21 @@
 import Link from 'next/link';
 import { Search, Zap, Bell, MessageCircle, ArrowRight, CheckCircle } from 'lucide-react';
 import { PLAN_PRICES_DISPLAY } from '../lib/constants';
+import { API_URL } from '../lib/api/client';
 
-export default function LandingPage() {
+async function getJobsTotal(): Promise<number> {
+  try {
+    const res = await fetch(`${API_URL}/jobs?limit=1`, { next: { revalidate: 3600 } });
+    if (!res.ok) return 2000;
+    const json = await res.json() as { total: number };
+    return json.total ?? 2000;
+  } catch {
+    return 2000;
+  }
+}
+
+export default async function LandingPage() {
+  const jobsTotal = await getJobsTotal();
   return (
     <main className="min-h-screen bg-sand">
       {/* ─── Nav ──────────────────────────────────────────────── */}
@@ -72,7 +85,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid grid-cols-3 gap-8 text-center">
             {[
-              { value: '2 000+', label: 'Offres actives' },
+              { value: jobsTotal > 0 ? `${jobsTotal.toLocaleString('fr-FR')}+` : '2 000+', label: 'Offres actives' },
               { value: '10', label: 'Sources scrappées' },
               { value: '<1min', label: 'Temps moyen candidature' },
             ].map(({ value, label }) => (
