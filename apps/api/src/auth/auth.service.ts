@@ -455,7 +455,15 @@ export class AuthService {
   // ─── Update profile ───────────────────────────────────────────────────────
 
   async updateMe(userId: string, dto: UpdateProfileDto): Promise<SafeUser> {
-    const encryptedPhone = dto.phone ? encryptField(dto.phone) : undefined;
+    let encryptedPhone: string | undefined;
+    if (dto.phone) {
+      try {
+        encryptedPhone = encryptField(dto.phone);
+      } catch (err) {
+        this.logger.warn('ENCRYPTION_KEY not configured — phone field skipped', err);
+        // Skip phone update rather than crashing the whole request
+      }
+    }
 
     const hasProfileUpdate = dto.title !== undefined || dto.city !== undefined;
     const profileUpsert = hasProfileUpdate

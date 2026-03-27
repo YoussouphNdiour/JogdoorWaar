@@ -103,7 +103,14 @@ export default function ProfilePage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await apiFetch('/auth/me', { method: 'PATCH', body: JSON.stringify(form) });
+      // Only include non-empty fields to avoid validation errors on blank phone
+      const patch: Record<string, string> = {};
+      if (form.firstName) patch.firstName = form.firstName;
+      if (form.lastName) patch.lastName = form.lastName;
+      if (form.phone) patch.phone = form.phone;
+      if (form.title !== undefined) patch.title = form.title;
+      if (form.city !== undefined) patch.city = form.city;
+      await apiFetch('/auth/me', { method: 'PATCH', body: JSON.stringify(patch) });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch {

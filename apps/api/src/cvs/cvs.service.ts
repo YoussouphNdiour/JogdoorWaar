@@ -75,11 +75,29 @@ export class CvsService {
     // 2. Extract text from PDF
     const textContent = await this.pdfExtractor.extract(file.buffer);
 
-    // 3. Generate embedding vector
-    const embedding = await this.embeddingService.embed(textContent);
+    // 3. Generate embedding vector (non-blocking — CV is saved even if embedding fails)
+    let embedding: number[] | null = null;
+    try {
+      embedding = await this.embeddingService.embed(textContent);
+    } catch (err) {
+      this.logger.warn(`Embedding failed for CV upload (user: ${userId}) — saving without vector`, err);
+    }
 
-    // 4. Analyse with Claude: detect skills, job types, sector fit
-    const analysis = await this.analyseWithClaude(userId, textContent);
+    // 4. Analyse with Claude: detect skills, job types, sector fit (non-blocking)
+    let analysis: Omit<CvAnalysis, 'cvId'> = {
+      detectedSkills: [],
+      detectedJobTypes: [],
+      sectorFit: [],
+      globalScore: 0,
+      strengths: [],
+      gaps: [],
+      recommendation: 'Analyse en attente.',
+    };
+    try {
+      analysis = await this.analyseWithClaude(userId, textContent);
+    } catch (err) {
+      this.logger.warn(`Claude analysis failed for CV upload (user: ${userId})`, err);
+    }
 
     // 5. Check if this is the user's first CV (will become default)
     const existingCount = await this.prisma.userCV.count({ where: { userId } });
@@ -104,12 +122,14 @@ export class CvsService {
       },
     });
 
-    // 7. Persist the embedding via raw SQL (pgvector unsupported type)
-    await this.prisma.$executeRaw`
-      UPDATE "UserCV"
-      SET embedding = ${`[${embedding.join(',')}]`}::vector
-      WHERE id = ${cv.id}
-    `;
+    // 7. Persist the embedding via raw SQL (pgvector unsupported type) — only if available
+    if (embedding) {
+      await this.prisma.$executeRaw`
+        UPDATE "UserCV"
+        SET embedding = ${`[${embedding.join(',')}]`}::vector
+        WHERE id = ${cv.id}
+      `;
+    }
 
     this.logger.log(`CV créé: ${cv.id} pour user: ${userId}`);
     return cv;
