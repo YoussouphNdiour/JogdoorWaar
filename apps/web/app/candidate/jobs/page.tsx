@@ -17,7 +17,7 @@ export default function JobsPage() {
   useEffect(() => {
     const params = new URLSearchParams();
     if (search) params.set('q', search);
-    if (sortBy) params.set('sort', sortBy);
+    if (sortBy) params.set('sortBy', sortBy);
     if (selectedTypes.length) params.set('jobType', selectedTypes.join(','));
     if (selectedModes.length) params.set('workMode', selectedModes.join(','));
 
