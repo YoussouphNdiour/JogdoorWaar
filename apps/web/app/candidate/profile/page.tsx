@@ -74,6 +74,7 @@ export default function ProfilePage() {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('name', file.name.replace('.pdf', ''));
       formData.append('label', file.name.replace('.pdf', ''));
       const newCv = await apiFetch<CvFile>('/cvs/upload', {
         method: 'POST',

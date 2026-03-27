@@ -62,9 +62,8 @@ export default function AlertsPage() {
   }
 
   async function handleToggle(alert: Alert) {
-    const updated = await apiFetch<Alert>(`/alerts/${alert.id}`, {
+    const updated = await apiFetch<Alert>(`/alerts/${alert.id}/toggle`, {
       method: 'PATCH',
-      body: JSON.stringify({ isActive: !alert.isActive }),
     }).catch(() => null);
     if (updated) {
       setAlerts((prev) => prev.map((a) => (a.id === alert.id ? updated : a)));
