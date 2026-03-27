@@ -11,11 +11,11 @@ type PaymentMethod = 'WAVE' | 'ORANGE_MONEY' | 'STRIPE';
 
 interface Invoice {
   id: string;
-  date: string;
+  startedAt: string;
   plan: Plan;
   amount: number;
-  method: PaymentMethod;
-  status: 'PAID' | 'PENDING' | 'FAILED';
+  paymentMethod: PaymentMethod;
+  status: 'active' | 'cancelled' | 'expired';
 }
 
 // ─── Feature list (from CLAUDE.md) ───────────────────────────────────────────
@@ -57,11 +57,11 @@ function FeatureValue({ value }: { value: string | boolean }) {
 
 function StatusBadge({ status }: { status: Invoice['status'] }) {
   const map = {
-    PAID: 'bg-green-100 text-green-700',
-    PENDING: 'bg-yellow-100 text-yellow-700',
-    FAILED: 'bg-red-100 text-red-600',
+    active: 'bg-green-100 text-green-700',
+    cancelled: 'bg-yellow-100 text-yellow-700',
+    expired: 'bg-red-100 text-red-600',
   } as const;
-  const labels = { PAID: 'Payé', PENDING: 'En attente', FAILED: 'Échoué' } as const;
+  const labels = { active: 'Actif', cancelled: 'Annulé', expired: 'Expiré' } as const;
   return (
     <span className={`text-[10px] font-dm font-semibold px-2 py-0.5 rounded-full ${map[status]}`}>
       {labels[status]}
@@ -69,7 +69,8 @@ function StatusBadge({ status }: { status: Invoice['status'] }) {
   );
 }
 
-function MethodLabel({ method }: { method: PaymentMethod }) {
+function MethodLabel({ method }: { method: PaymentMethod | null }) {
+  if (!method) return <span className="font-dm text-xs text-gray-400">—</span>;
   const map = {
     WAVE: { label: 'Wave', color: 'text-blue-600' },
     ORANGE_MONEY: { label: 'Orange Money', color: 'text-orange-500' },
@@ -523,7 +524,7 @@ export default function BillingPage() {
                     </td>
                     <td className="px-4 py-4">
                       <span className="font-dm text-sm text-[#1B4332]">
-                        {new Date(inv.date).toLocaleDateString('fr-SN', {
+                        {new Date(inv.startedAt).toLocaleDateString('fr-SN', {
                           day: 'numeric',
                           month: 'short',
                           year: 'numeric',
@@ -541,7 +542,7 @@ export default function BillingPage() {
                       </span>
                     </td>
                     <td className="px-4 py-4">
-                      <MethodLabel method={inv.method} />
+                      <MethodLabel method={inv.paymentMethod} />
                     </td>
                     <td className="px-4 py-4">
                       <StatusBadge status={inv.status} />

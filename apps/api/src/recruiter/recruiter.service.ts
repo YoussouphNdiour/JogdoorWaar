@@ -28,28 +28,32 @@ export class RecruiterService {
   // ─── Stats ────────────────────────────────────────────────────────────────────
 
   async getStats(recruiterId: string) {
-    const [activeJobs, totalApplications, totalViews] = await Promise.all([
-      this.prisma.job.count({ where: { recruiterId, isActive: true } }),
-      this.prisma.application.count({ where: { job: { recruiterId } } }),
-      this.prisma.job.aggregate({
-        where: { recruiterId },
-        _sum: { viewCount: true },
-      }),
-    ]);
-
     const startOfMonth = new Date(
       new Date().getFullYear(),
       new Date().getMonth(),
       1,
     );
-    const jobsThisMonth = await this.prisma.job.count({
-      where: { recruiterId, createdAt: { gte: startOfMonth } },
-    });
+
+    const [activeJobs, totalJobs, totalApplications, aggregates, jobsThisMonth, user] =
+      await Promise.all([
+        this.prisma.job.count({ where: { recruiterId, isActive: true } }),
+        this.prisma.job.count({ where: { recruiterId } }),
+        this.prisma.application.count({ where: { job: { recruiterId } } }),
+        this.prisma.job.aggregate({
+          where: { recruiterId },
+          _sum: { viewCount: true, clickCount: true },
+        }),
+        this.prisma.job.count({ where: { recruiterId, createdAt: { gte: startOfMonth } } }),
+        this.prisma.user.findUnique({ where: { id: recruiterId }, select: { plan: true } }),
+      ]);
 
     return {
       activeJobs,
+      totalJobs,
       totalApplications,
-      totalViews: totalViews._sum.viewCount ?? 0,
+      totalViews: aggregates._sum.viewCount ?? 0,
+      totalClicks: aggregates._sum.clickCount ?? 0,
+      plan: user?.plan ?? 'RECRUITER',
       jobsThisMonth,
       jobsRemainingThisMonth: Math.max(0, 10 - jobsThisMonth),
     };
@@ -155,11 +159,20 @@ export class RecruiterService {
       title: job.title,
       company: job.company,
       city: job.city ?? '',
+      country: job.country,
       workMode: job.workMode,
       jobType: job.jobType,
+      sector: job.sector,
+      salaryMin: job.salaryMin,
+      salaryMax: job.salaryMax,
+      descriptionFull: job.description,
+      requiredSkills: job.requiredSkills,
       status: 'ACTIVE',
       applicationsCount: 0,
       publishedAt: job.publishedAt.toISOString(),
+      viewCount: 0,
+      clickCount: 0,
+      isBoosted: false,
     };
   }
 
@@ -231,6 +244,13 @@ export class RecruiterService {
       orderBy: { createdAt: 'desc' },
     });
 
+    const userIds = apps.map((a) => a.userId);
+    const matchScores = await this.prisma.matchScore.findMany({
+      where: { jobId, userId: { in: userIds } },
+      select: { userId: true, score: true },
+    });
+    const matchScoreMap = new Map(matchScores.map((m) => [m.userId, m.score]));
+
     return apps.map((a) => ({
       id: a.id,
       jobId: a.jobId,
@@ -241,6 +261,7 @@ export class RecruiterService {
       status: a.recruiterStatus,
       channel: a.appliedVia,
       appliedAt: a.appliedAt?.toISOString() ?? a.createdAt.toISOString(),
+      matchScore: matchScoreMap.get(a.userId) ?? null,
     }));
   }
 

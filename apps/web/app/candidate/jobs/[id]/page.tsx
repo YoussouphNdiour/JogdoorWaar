@@ -22,7 +22,7 @@ interface JobDetail {
   sourceUrl: string;
   sourcePlatform: string;
   descriptionShort?: string;
-  descriptionFull?: string;
+  description?: string;
   requiredSkills: string[];
   matchScore?: number;
 }
@@ -173,9 +173,9 @@ export default function JobDetailPage() {
           {/* Description */}
           <div className="bg-white rounded-2xl border border-sand-dark p-6">
             <h2 className="font-syne font-bold text-savane mb-4">Description du poste</h2>
-            {job.descriptionFull ? (
+            {job.description ? (
               <div className="font-dm text-sm text-savane/80 leading-relaxed whitespace-pre-wrap">
-                {job.descriptionFull}
+                {job.description}
               </div>
             ) : job.descriptionShort ? (
               <p className="font-dm text-sm text-savane/80 leading-relaxed">{job.descriptionShort}</p>

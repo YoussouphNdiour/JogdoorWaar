@@ -6,11 +6,15 @@ import { apiFetch } from '../../../lib/api/client';
 
 interface CvFile {
   id: string;
-  label: string;
+  name: string;
+  label?: string;
+  fileName: string;
   fileUrl: string;
-  isPrimary: boolean;
+  fileSize?: number;
+  isDefault: boolean;
+  isGenerated: boolean;
+  detectedSkills: string[];
   createdAt: string;
-  extractedText?: string;
 }
 
 interface UserProfile {
@@ -91,7 +95,7 @@ export default function ProfilePage() {
 
   async function handleSetPrimary(cvId: string) {
     await apiFetch(`/cvs/${cvId}/set-default`, { method: 'PATCH' }).catch(() => {});
-    setCvs((prev) => prev.map((c) => ({ ...c, isPrimary: c.id === cvId })));
+    setCvs((prev) => prev.map((c) => ({ ...c, isDefault: c.id === cvId })));
   }
 
   async function handleDelete(cvId: string) {
@@ -293,16 +297,16 @@ export default function ProfilePage() {
             {cvs.map((cv) => (
               <div
                 key={cv.id}
-                className={`flex items-center gap-4 p-4 rounded-xl border ${cv.isPrimary ? 'border-terracotta/30 bg-terracotta/5' : 'border-sand-dark bg-sand-dark/30'}`}
+                className={`flex items-center gap-4 p-4 rounded-xl border ${cv.isDefault ? 'border-terracotta/30 bg-terracotta/5' : 'border-sand-dark bg-sand-dark/30'}`}
               >
                 <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center flex-shrink-0 border border-sand-dark">
-                  <FileText className={`h-5 w-5 ${cv.isPrimary ? 'text-terracotta' : 'text-savane/40'}`} />
+                  <FileText className={`h-5 w-5 ${cv.isDefault ? 'text-terracotta' : 'text-savane/40'}`} />
                 </div>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-dm font-medium text-savane text-sm truncate">{cv.label}</p>
-                    {cv.isPrimary && (
+                    {cv.isDefault && (
                       <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-terracotta/20 text-terracotta">
                         <Star className="h-2.5 w-2.5" fill="currentColor" /> Principal
                       </span>
@@ -314,7 +318,7 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {!cv.isPrimary && (
+                  {!cv.isDefault && (
                     <button
                       onClick={() => handleSetPrimary(cv.id)}
                       className="text-xs font-dm text-savane/50 hover:text-terracotta transition-colors px-3 py-1.5 rounded-lg hover:bg-terracotta/10"

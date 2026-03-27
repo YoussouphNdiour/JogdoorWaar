@@ -124,7 +124,8 @@ export interface JobListItem {
   sourceUrl: string;
   descriptionShort?: string;
   requiredSkills: string[];
-  matchScore?: number;
+  matchScore?: number | null;
+  isSaved?: boolean;
   isActive: boolean;
   isPremium: boolean;
 }

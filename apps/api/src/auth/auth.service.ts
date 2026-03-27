@@ -465,18 +465,22 @@ export class AuthService {
       }
     }
 
-    const hasProfileUpdate = dto.title !== undefined || dto.city !== undefined;
+    const profileFields = {
+      ...(dto.title !== undefined && { currentJobTitle: dto.title }),
+      ...(dto.city !== undefined && { city: dto.city }),
+      ...(dto.headline !== undefined && { headline: dto.headline }),
+      ...(dto.summary !== undefined && { summary: dto.summary }),
+      ...(dto.yearsOfExperience !== undefined && { yearsOfExperience: dto.yearsOfExperience }),
+      ...(dto.isOpenToWork !== undefined && { isOpenToWork: dto.isOpenToWork }),
+      ...(dto.preferredWorkMode !== undefined && { preferredWorkMode: dto.preferredWorkMode }),
+      ...(dto.preferredJobTypes !== undefined && { preferredJobTypes: dto.preferredJobTypes }),
+    };
+    const hasProfileUpdate = Object.keys(profileFields).length > 0;
     const profileUpsert = hasProfileUpdate
       ? {
           upsert: {
-            create: {
-              ...(dto.title !== undefined && { currentJobTitle: dto.title }),
-              ...(dto.city !== undefined && { city: dto.city }),
-            },
-            update: {
-              ...(dto.title !== undefined && { currentJobTitle: dto.title }),
-              ...(dto.city !== undefined && { city: dto.city }),
-            },
+            create: profileFields,
+            update: profileFields,
           },
         }
       : undefined;

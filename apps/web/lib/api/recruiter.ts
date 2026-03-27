@@ -2,7 +2,7 @@ import { apiFetch } from './client';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type RecruiterJobStatus = 'ACTIVE' | 'PAUSED' | 'EXPIRED' | 'DRAFT';
+export type RecruiterJobStatus = 'ACTIVE' | 'PAUSED';
 
 export interface RecruiterJob {
   id: string;
@@ -22,7 +22,7 @@ export interface RecruiterJob {
   expiresAt?: string;
   viewCount: number;
   clickCount: number;
-  applicationCount: number;
+  applicationsCount: number;
   isBoosted: boolean;
 }
 
@@ -49,17 +49,18 @@ export interface RecruiterApplication {
   channel: 'WEB' | 'WHATSAPP';
   appliedAt: string;
   status: 'PENDING' | 'REVIEWED' | 'SHORTLISTED' | 'REJECTED';
-  matchScore?: number;
+  matchScore?: number | null;
 }
 
 export interface RecruiterStats {
-  totalJobs: number;
   activeJobs: number;
+  totalJobs: number;
   totalApplications: number;
   totalViews: number;
   totalClicks: number;
   plan: string;
-  jobsRemaining: number;
+  jobsThisMonth: number;
+  jobsRemainingThisMonth: number;
 }
 
 // ─── API functions ────────────────────────────────────────────────────────────

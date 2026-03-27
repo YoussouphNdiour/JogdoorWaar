@@ -1,5 +1,16 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsPhoneNumber, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsPhoneNumber,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
+import { JobType, WorkMode } from '@prisma/client';
 
 export class UpdateProfileDto {
   @ApiPropertyOptional({ example: 'Amadou' })
@@ -31,4 +42,38 @@ export class UpdateProfileDto {
   @IsString()
   @IsOptional()
   city?: string;
+
+  @ApiPropertyOptional({ example: 'Développeur passionné par les produits IA' })
+  @IsString()
+  @IsOptional()
+  headline?: string;
+
+  @ApiPropertyOptional({ example: '5 ans d'expérience en développement web full stack...' })
+  @IsString()
+  @IsOptional()
+  summary?: string;
+
+  @ApiPropertyOptional({ example: 3 })
+  @IsInt()
+  @Min(0)
+  @Max(50)
+  @IsOptional()
+  yearsOfExperience?: number;
+
+  @ApiPropertyOptional({ example: true })
+  @IsBoolean()
+  @IsOptional()
+  isOpenToWork?: boolean;
+
+  @ApiPropertyOptional({ enum: WorkMode, isArray: true })
+  @IsArray()
+  @IsEnum(WorkMode, { each: true })
+  @IsOptional()
+  preferredWorkMode?: WorkMode[];
+
+  @ApiPropertyOptional({ enum: JobType, isArray: true })
+  @IsArray()
+  @IsEnum(JobType, { each: true })
+  @IsOptional()
+  preferredJobTypes?: JobType[];
 }

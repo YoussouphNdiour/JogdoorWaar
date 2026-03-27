@@ -6,17 +6,19 @@ import { apiFetch } from '../../../lib/api/client';
 
 interface Alert {
   id: string;
-  keywords: string;
-  city?: string;
-  jobType?: string;
-  frequency: 'IMMEDIATE' | 'DAILY' | 'WEEKLY';
-  channels: ('EMAIL' | 'WHATSAPP')[];
+  name: string;
+  keywords: string[];
+  locations: string[];
+  jobTypes: string[];
+  notifyByEmail: boolean;
+  notifyByWhatsapp: boolean;
+  frequency: 'INSTANT' | 'DAILY' | 'WEEKLY';
   isActive: boolean;
   createdAt: string;
 }
 
 const FREQUENCY_LABEL: Record<Alert['frequency'], string> = {
-  IMMEDIATE: 'Immédiate',
+  INSTANT: 'Immédiate',
   DAILY: 'Quotidienne',
   WEEKLY: 'Hebdomadaire',
 };
@@ -28,11 +30,13 @@ export default function AlertsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({
+    name: '',
     keywords: '',
     city: '',
     jobType: '',
     frequency: 'DAILY' as Alert['frequency'],
-    channels: ['EMAIL'] as ('EMAIL' | 'WHATSAPP')[],
+    notifyByEmail: true,
+    notifyByWhatsapp: false,
   });
 
   useEffect(() => {
@@ -47,13 +51,22 @@ export default function AlertsPage() {
     setError('');
     setSaving(true);
     try {
+      const payload = {
+        name: form.name,
+        keywords: form.keywords.split(',').map((k) => k.trim()).filter(Boolean),
+        locations: form.city ? [form.city.trim()] : [],
+        jobTypes: form.jobType ? [form.jobType] : [],
+        notifyByEmail: form.notifyByEmail,
+        notifyByWhatsapp: form.notifyByWhatsapp,
+        frequency: form.frequency,
+      };
       const created = await apiFetch<Alert>('/alerts', {
         method: 'POST',
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       setAlerts((prev) => [created, ...prev]);
       setShowForm(false);
-      setForm({ keywords: '', city: '', jobType: '', frequency: 'DAILY', channels: ['EMAIL'] });
+      setForm({ name: '', keywords: '', city: '', jobType: '', frequency: 'DAILY', notifyByEmail: true, notifyByWhatsapp: false });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la création.');
     } finally {
@@ -73,15 +86,6 @@ export default function AlertsPage() {
   async function handleDelete(id: string) {
     await apiFetch(`/alerts/${id}`, { method: 'DELETE' }).catch(() => {});
     setAlerts((prev) => prev.filter((a) => a.id !== id));
-  }
-
-  function toggleChannel(channel: 'EMAIL' | 'WHATSAPP') {
-    setForm((prev) => ({
-      ...prev,
-      channels: prev.channels.includes(channel)
-        ? prev.channels.filter((c) => c !== channel)
-        : [...prev.channels, channel],
-    }));
   }
 
   return (
@@ -109,13 +113,27 @@ export default function AlertsPage() {
           <form onSubmit={handleCreate} className="space-y-4">
             <div>
               <label className="font-dm text-sm text-savane/70 mb-1.5 block">
+                Nom de l&apos;alerte <span className="text-terracotta">*</span>
+              </label>
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="ex: Dev React Dakar"
+                required
+                className="w-full px-4 py-3 bg-sand-dark border border-sand-dark rounded-xl font-dm text-savane placeholder:text-savane/40 focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta"
+              />
+            </div>
+
+            <div>
+              <label className="font-dm text-sm text-savane/70 mb-1.5 block">
                 Mots-clés <span className="text-terracotta">*</span>
               </label>
               <input
                 type="text"
                 value={form.keywords}
                 onChange={(e) => setForm({ ...form, keywords: e.target.value })}
-                placeholder="ex: développeur React, data analyst, comptable…"
+                placeholder="ex: développeur React, data analyst, comptable (séparés par des virgules)"
                 required
                 className="w-full px-4 py-3 bg-sand-dark border border-sand-dark rounded-xl font-dm text-savane placeholder:text-savane/40 focus:outline-none focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta"
               />
@@ -144,6 +162,7 @@ export default function AlertsPage() {
                   <option value="CDD">CDD</option>
                   <option value="STAGE">Stage</option>
                   <option value="FREELANCE">Freelance</option>
+                  <option value="ALTERNANCE">Alternance</option>
                 </select>
               </div>
             </div>
@@ -171,20 +190,24 @@ export default function AlertsPage() {
             <div>
               <label className="font-dm text-sm text-savane/70 mb-1.5 block">Canaux de notification</label>
               <div className="flex gap-2">
-                {(['EMAIL', 'WHATSAPP'] as const).map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => toggleChannel(c)}
-                    className={`px-4 py-2 rounded-xl font-dm text-sm transition-colors ${
-                      form.channels.includes(c)
-                        ? 'bg-savane text-white'
-                        : 'bg-sand-dark text-savane hover:bg-sand-dark/80'
-                    }`}
-                  >
-                    {c === 'EMAIL' ? '✉️ Email' : '💬 WhatsApp'}
-                  </button>
-                ))}
+                <button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, notifyByEmail: !prev.notifyByEmail }))}
+                  className={`px-4 py-2 rounded-xl font-dm text-sm transition-colors ${
+                    form.notifyByEmail ? 'bg-savane text-white' : 'bg-sand-dark text-savane hover:bg-sand-dark/80'
+                  }`}
+                >
+                  ✉️ Email
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, notifyByWhatsapp: !prev.notifyByWhatsapp }))}
+                  className={`px-4 py-2 rounded-xl font-dm text-sm transition-colors ${
+                    form.notifyByWhatsapp ? 'bg-savane text-white' : 'bg-sand-dark text-savane hover:bg-sand-dark/80'
+                  }`}
+                >
+                  💬 WhatsApp
+                </button>
               </div>
             </div>
 
@@ -197,7 +220,7 @@ export default function AlertsPage() {
             <div className="flex gap-3">
               <button
                 type="submit"
-                disabled={saving || form.channels.length === 0}
+                disabled={saving || (!form.notifyByEmail && !form.notifyByWhatsapp)}
                 className="bg-terracotta text-white px-6 py-2.5 rounded-xl font-dm font-semibold hover:bg-terracotta/90 disabled:opacity-50 transition-colors flex items-center gap-2"
               >
                 {saving && (
@@ -246,26 +269,32 @@ export default function AlertsPage() {
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <p className="font-dm font-semibold text-savane truncate">{alert.keywords}</p>
+                  <p className="font-dm font-semibold text-savane truncate">{alert.name}</p>
+                  <p className="font-dm text-xs text-savane/50 mt-0.5 truncate">{alert.keywords.join(', ')}</p>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {alert.city && (
+                    {alert.locations[0] && (
                       <span className="text-xs font-dm bg-sand-dark text-savane/60 px-2 py-0.5 rounded-lg">
-                        📍 {alert.city}
+                        📍 {alert.locations[0]}
                       </span>
                     )}
-                    {alert.jobType && (
+                    {alert.jobTypes[0] && (
                       <span className="text-xs font-dm bg-sand-dark text-savane/60 px-2 py-0.5 rounded-lg">
-                        {alert.jobType}
+                        {alert.jobTypes[0]}
                       </span>
                     )}
                     <span className="text-xs font-dm bg-sand-dark text-savane/60 px-2 py-0.5 rounded-lg">
                       {FREQUENCY_LABEL[alert.frequency]}
                     </span>
-                    {alert.channels.map((c) => (
-                      <span key={c} className="text-xs font-dm bg-sand-dark text-savane/60 px-2 py-0.5 rounded-lg">
-                        {c === 'EMAIL' ? '✉️ Email' : '💬 WhatsApp'}
+                    {alert.notifyByEmail && (
+                      <span className="text-xs font-dm bg-sand-dark text-savane/60 px-2 py-0.5 rounded-lg">
+                        ✉️ Email
                       </span>
-                    ))}
+                    )}
+                    {alert.notifyByWhatsapp && (
+                      <span className="text-xs font-dm bg-sand-dark text-savane/60 px-2 py-0.5 rounded-lg">
+                        💬 WhatsApp
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
