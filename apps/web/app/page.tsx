@@ -267,6 +267,8 @@ export default async function LandingPage() {
               <Link href="/jobs" className="hover:text-white transition-colors">Offres</Link>
               <Link href="/auth/login" className="hover:text-white transition-colors">Connexion</Link>
               <Link href="/auth/register" className="hover:text-white transition-colors">Inscription</Link>
+              <Link href="/legal/privacy" className="hover:text-white transition-colors">Confidentialité</Link>
+              <Link href="/legal/terms" className="hover:text-white transition-colors">CGU</Link>
             </div>
           </div>
           <div className="border-t border-white/10 mt-8 pt-8 text-center font-dm text-xs text-white/30">
