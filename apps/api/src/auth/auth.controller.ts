@@ -266,9 +266,9 @@ export class AuthController {
 
   // ─── Gmail OAuth connect ──────────────────────────────────────────────────
 
+  @Public()
   @Get('gmail/connect')
-  @UseGuards(JwtAuthGuard, AuthGuard('google-gmail'))
-  @ApiBearerAuth()
+  @UseGuards(AuthGuard('google-gmail'))
   @ApiOperation({ summary: 'Initier la connexion Gmail (scope gmail.send) — redirige vers Google' })
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   gmailConnect(): void {}
