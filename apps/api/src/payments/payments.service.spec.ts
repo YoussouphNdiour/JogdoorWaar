@@ -82,7 +82,7 @@ describe('PaymentsService', () => {
       expect(result.redirectUrl).toBe('https://wave.sn/pay/abc');
       expect(prisma.subscription.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          create: expect.objectContaining({ plan: Plan.PREMIUM, amount: 3500, status: 'pending' }),
+          create: expect.objectContaining({ plan: Plan.PREMIUM, amount: 15, status: 'pending' }),
         }),
       );
     });

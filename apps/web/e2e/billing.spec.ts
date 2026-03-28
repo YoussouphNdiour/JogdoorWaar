@@ -28,7 +28,7 @@ const MOCK_PLANS = [
   {
     id: 'premium',
     name: 'PREMIUM',
-    price: 3500,
+    price: 35,
     currency: 'FCFA',
     features: [
       'Alertes illimitées',
@@ -40,7 +40,7 @@ const MOCK_PLANS = [
   {
     id: 'recruteur',
     name: 'RECRUTEUR',
-    price: 15000,
+    price: 15,
     currency: 'FCFA',
     features: ['10 offres/mois', 'Coach entretien IA', 'CRM illimité'],
   },

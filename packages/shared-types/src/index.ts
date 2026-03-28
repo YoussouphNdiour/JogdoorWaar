@@ -254,6 +254,6 @@ export const PLAN_LIMITS = {
 
 export const PLAN_PRICES_FCFA = {
   [Plan.FREE]: 0,
-  [Plan.PREMIUM]: 3500,
-  [Plan.RECRUITER]: 15000,
+  [Plan.PREMIUM]: 15,
+  [Plan.RECRUITER]: 15,
 } as const;

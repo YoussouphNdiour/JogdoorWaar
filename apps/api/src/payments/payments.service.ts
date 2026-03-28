@@ -14,8 +14,8 @@ import { WaveService } from './wave.service';
 
 /** Amount in FCFA keyed by plan. FREE is not purchasable. */
 const PLAN_AMOUNTS: Partial<Record<Plan, number>> = {
-  [Plan.PREMIUM]: 3500,
-  [Plan.RECRUITER]: 15000,
+  [Plan.PREMIUM]: 15,
+  [Plan.RECRUITER]: 15,
 };
 
 /** Duration of one subscription cycle: 31 days in milliseconds. */
