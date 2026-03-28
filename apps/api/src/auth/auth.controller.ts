@@ -268,10 +268,20 @@ export class AuthController {
 
   @Public()
   @Get('gmail/connect')
-  @UseGuards(AuthGuard('google-gmail'))
   @ApiOperation({ summary: 'Initier la connexion Gmail (scope gmail.send) — redirige vers Google' })
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  gmailConnect(): void {}
+  gmailConnect(@Res() res: Response): void {
+    // Build the Google OAuth URL manually — AuthGuard + redirect + no-session causes 401
+    const clientId = encodeURIComponent(process.env.GOOGLE_CLIENT_ID ?? '');
+    const callbackUrl = encodeURIComponent(process.env.GOOGLE_GMAIL_CALLBACK_URL ?? '');
+    const scope = encodeURIComponent(
+      'email profile https://www.googleapis.com/auth/gmail.send',
+    );
+    const url =
+      `https://accounts.google.com/o/oauth2/v2/auth` +
+      `?response_type=code&client_id=${clientId}&redirect_uri=${callbackUrl}` +
+      `&scope=${scope}&access_type=offline&prompt=consent`;
+    (res as unknown as import('express').Response).redirect(url);
+  }
 
   @Public()
   @Get('gmail/callback')
