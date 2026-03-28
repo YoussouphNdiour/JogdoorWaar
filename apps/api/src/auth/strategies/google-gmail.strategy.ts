@@ -18,6 +18,7 @@ export class GoogleGmailStrategy extends PassportStrategy(Strategy, 'google-gmai
       scope: ['email', 'profile', 'https://www.googleapis.com/auth/gmail.send'],
       accessType: 'offline',
       prompt: 'consent', // Forces Google to return refresh_token every time
+      state: false, // No session middleware — disable CSRF state
     });
   }
 
