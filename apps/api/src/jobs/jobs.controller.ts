@@ -18,6 +18,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtGuard } from '../auth/guards/optional-jwt.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { JobsService } from './jobs.service';
@@ -72,6 +73,22 @@ export class JobsController {
   @ApiOkResponse({ description: 'List of saved jobs' })
   findSaved(@CurrentUser() user: JwtPayload) {
     return this.jobsService.findSaved(user.sub);
+  }
+
+  // ─── GET /jobs/feed ───────────────────────────────────────────────────────
+
+  @Get('feed')
+  @UseGuards(OptionalJwtGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary:
+      'Personalised job feed sorted by CV-matching score. ' +
+      'Returns up to 30 results for authenticated users (AI score > vector similarity > date). ' +
+      'Falls back to 20 most-recent jobs for anonymous visitors.',
+  })
+  @ApiOkResponse({ description: 'Ordered list of jobs with matchScore attached' })
+  findFeed(@CurrentUser() user?: JwtPayload) {
+    return this.jobsService.findFeed(user?.sub);
   }
 
   // ─── GET /jobs/:id ────────────────────────────────────────────────────────

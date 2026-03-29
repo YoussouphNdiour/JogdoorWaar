@@ -11,7 +11,8 @@ import { JwtService } from '@nestjs/jwt';
 import { Plan, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
-import { Profile } from 'passport-google-oauth20';
+import { Profile as GoogleProfile } from 'passport-google-oauth20';
+import { Profile as LinkedInProfile } from 'passport-linkedin-oauth2';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -269,7 +270,7 @@ export class AuthService {
   // ─── Google OAuth ─────────────────────────────────────────────────────────
 
   async validateGoogleUser(
-    profile: Profile,
+    profile: GoogleProfile,
     userAgent?: string,
     ipAddress?: string,
   ): Promise<AuthTokens & { user: SafeUser }> {
@@ -348,6 +349,96 @@ export class AuthService {
       where: { provider_providerId: { provider: 'google', providerId } },
       select: { userId: true },
     });
+  }
+
+  // ─── LinkedIn OAuth ───────────────────────────────────────────────────────
+
+  /**
+   * Find or create a user from a LinkedIn OAuth profile.
+   * LinkedIn's r_emailaddress + r_liteprofile scopes expose email and basic name.
+   * No tokens are stored — LinkedIn OAuth does not provide offline_access.
+   */
+  async validateLinkedInUser(
+    profile: LinkedInProfile,
+    userAgent?: string,
+    ipAddress?: string,
+  ): Promise<AuthTokens & { user: SafeUser }> {
+    const email = profile.emails?.[0]?.value?.toLowerCase();
+    if (!email) {
+      throw new BadRequestException(
+        'Email non disponible dans le profil LinkedIn',
+      );
+    }
+
+    const providerId = profile.id;
+    const firstName = profile.name?.givenName ?? 'Utilisateur';
+    const lastName = profile.name?.familyName ?? '';
+    const avatarUrl = profile.photos?.[0]?.value ?? null;
+
+    // Check if an OAuthAccount already links this LinkedIn identity
+    const existingOAuth = await this.prisma.oAuthAccount.findUnique({
+      where: { provider_providerId: { provider: 'linkedin', providerId } },
+      include: { user: true },
+    });
+
+    if (existingOAuth) {
+      const tokens = await this.generateTokens(
+        existingOAuth.user.id,
+        existingOAuth.user.email,
+        existingOAuth.user.role,
+        existingOAuth.user.plan,
+      );
+      await this.persistRefreshToken(
+        existingOAuth.user.id,
+        tokens.refreshToken,
+        userAgent,
+        ipAddress,
+      );
+      return { user: this.toSafeUser(existingOAuth.user), ...tokens };
+    }
+
+    // Find or create user by email
+    let user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          firstName,
+          lastName,
+          avatarUrl,
+          emailVerified: true, // LinkedIn guarantees email ownership
+          oauthAccounts: {
+            create: { provider: 'linkedin', providerId },
+          },
+          profile: {
+            create: { city: 'Dakar', country: 'Sénégal' },
+          },
+        },
+      });
+    } else {
+      // Link LinkedIn account to existing user
+      await this.prisma.oAuthAccount.create({
+        data: { userId: user.id, provider: 'linkedin', providerId },
+      });
+    }
+
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email,
+      user.role,
+      user.plan,
+    );
+    await this.persistRefreshToken(
+      user.id,
+      tokens.refreshToken,
+      userAgent,
+      ipAddress,
+    );
+
+    this.logger.log(`Connexion LinkedIn réussie: ${user.id}`);
+
+    return { user: this.toSafeUser(user), ...tokens };
   }
 
   // ─── Gmail OAuth tokens ───────────────────────────────────────────────────

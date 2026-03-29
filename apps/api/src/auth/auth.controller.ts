@@ -264,6 +264,40 @@ export class AuthController {
     );
   }
 
+  // ─── LinkedIn OAuth ───────────────────────────────────────────────────────
+
+  @Public()
+  @Get('linkedin')
+  @UseGuards(AuthGuard('linkedin'))
+  @ApiOperation({ summary: 'Initier le flux OAuth LinkedIn — redirige vers LinkedIn' })
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  linkedInAuth(): void {
+    // Passport redirects automatically; this handler body is intentionally empty
+  }
+
+  @Public()
+  @Get('linkedin/callback')
+  @UseGuards(AuthGuard('linkedin'))
+  @ApiOperation({ summary: 'Callback OAuth LinkedIn — émet les tokens et redirige' })
+  async linkedInCallback(
+    @Req() req: Request & { user: { profile: import('passport-linkedin-oauth2').Profile; accessToken: string } },
+    @Res() res: Response,
+  ): Promise<void> {
+    const result = await this.authService.validateLinkedInUser(
+      req.user.profile,
+      req.headers['user-agent'],
+      req.ip,
+    );
+
+    this.setRefreshCookie(res as unknown as Response, result.refreshToken);
+
+    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+
+    res.redirect(
+      `${frontendUrl}/auth/callback?token=${encodeURIComponent(result.accessToken)}&userId=${encodeURIComponent(result.user.id)}`,
+    );
+  }
+
   // ─── Gmail OAuth connect ──────────────────────────────────────────────────
 
   @Public()

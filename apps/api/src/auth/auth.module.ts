@@ -20,6 +20,15 @@ const googleStrategyProviders = process.env.GOOGLE_CLIENT_ID
     ]
   : [];
 
+// LinkedInStrategy is registered only when LINKEDIN_CLIENT_ID is configured,
+// following the same optional-provider pattern as googleStrategyProviders.
+const linkedInStrategyProviders = process.env.LINKEDIN_CLIENT_ID
+  ? [
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require('./strategies/linkedin.strategy').LinkedInStrategy,
+    ]
+  : [];
+
 @Module({
   imports: [
     ConfigModule, // already global, re-importing is a no-op but makes dependency explicit
@@ -45,6 +54,7 @@ const googleStrategyProviders = process.env.GOOGLE_CLIENT_ID
     RolesGuard,
     OptionalJwtGuard,
     ...googleStrategyProviders,
+    ...linkedInStrategyProviders,
   ],
   exports: [
     AuthService,

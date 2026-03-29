@@ -31,6 +31,15 @@ interface Application {
   id: string;
 }
 
+interface FeedJob {
+  id: string;
+  title: string;
+  company: string;
+  city: string;
+  jobType: string;
+  matchScore?: number;
+}
+
 interface DashboardData {
   profile: UserProfile;
   jobs: JobListItem[];
@@ -38,6 +47,7 @@ interface DashboardData {
   applications: Application[];
   alerts: Alert[];
   cvs: CvFile[];
+  feedJobs: FeedJob[];
 }
 
 function computeProfileCompletion(profile: UserProfile, cvCount: number): number {
@@ -60,8 +70,9 @@ export default function DashboardPage() {
       apiFetch<Application[]>('/applications'),
       apiFetch<Alert[]>('/alerts'),
       apiFetch<CvFile[]>('/cvs'),
+      apiFetch<{ data: FeedJob[] }>('/jobs/feed').catch(() => ({ data: [] })),
     ])
-      .then(([profile, jobsRes, applications, alerts, cvs]) => {
+      .then(([profile, jobsRes, applications, alerts, cvs, feedRes]) => {
         setData({
           profile,
           jobs: jobsRes.data,
@@ -69,6 +80,7 @@ export default function DashboardPage() {
           applications,
           alerts,
           cvs,
+          feedJobs: feedRes.data,
         });
       })
       .catch(() => {})
@@ -265,6 +277,75 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Feed — Offres recommandées pour vous */}
+      {(loading || (data?.feedJobs && data.feedJobs.length > 0)) && (
+        <div className="mt-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-syne text-lg font-bold text-savane">Offres recommandées pour vous</h2>
+            <Link
+              href="/candidate/jobs?sortBy=matchScore"
+              className="font-dm text-sm text-terracotta hover:underline flex items-center gap-1"
+            >
+              Voir tout <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="bg-white rounded-2xl border border-sand-dark p-5 animate-pulse">
+                  <div className="h-4 bg-sand-dark rounded w-3/4 mb-3" />
+                  <div className="h-3 bg-sand-dark rounded w-1/2 mb-2" />
+                  <div className="h-3 bg-sand-dark rounded w-1/3" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {data?.feedJobs.map((job) => {
+                const score = job.matchScore != null ? Math.round(job.matchScore * 100) : null;
+                const scoreBadgeClass =
+                  score == null
+                    ? ''
+                    : score >= 80
+                    ? 'bg-savane/10 text-savane'
+                    : score >= 60
+                    ? 'bg-gold/30 text-gold-600'
+                    : 'bg-sand-dark text-savane/50';
+
+                return (
+                  <Link
+                    key={job.id}
+                    href={`/candidate/jobs/${job.id}`}
+                    className="bg-white rounded-2xl shadow-soft border border-sand-dark p-5 flex flex-col gap-3 hover:border-terracotta/30 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-dm font-semibold text-savane truncate">{job.title}</h3>
+                        <p className="font-dm text-xs text-savane/60 mt-0.5">{job.company}</p>
+                      </div>
+                      {score != null && (
+                        <span className={`flex-shrink-0 text-xs font-dm font-bold px-2.5 py-1 rounded-full ${scoreBadgeClass}`}>
+                          {score}%
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-dm bg-sand-dark text-savane/60 px-2.5 py-1 rounded-lg">
+                        {job.city}
+                      </span>
+                      <span className="text-xs font-dm bg-sand-dark text-savane/60 px-2.5 py-1 rounded-lg">
+                        {job.jobType}
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

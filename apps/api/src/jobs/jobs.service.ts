@@ -440,19 +440,185 @@ export class JobsService {
 
   private buildOrderBy(
     sortBy?: string,
-    _userId?: string,
+    userId?: string,
   ): Prisma.JobOrderByWithRelationInput | Prisma.JobOrderByWithRelationInput[] {
     switch (sortBy) {
       case 'date':
         return { publishedAt: 'desc' };
       case 'salary':
         return [{ salaryMax: 'desc' }, { publishedAt: 'desc' }];
-      // 'matchScore' requires JOIN — handled at the application layer by
-      // findRecommended(). For findAll() we fall through to date-desc.
-      case 'relevance':
       case 'matchScore':
+        // When userId is present, bias the DB fetch toward jobs that already
+        // have a MatchScore record (highest count proxy). The real score-based
+        // sort is applied in memory after the MatchScore map is built.
+        if (userId) {
+          return [
+            { matchScores: { _count: 'desc' } },
+            { publishedAt: 'desc' },
+          ];
+        }
+        return { publishedAt: 'desc' };
+      case 'relevance':
       default:
         return { publishedAt: 'desc' };
     }
+  }
+
+  // ─── findRecent ───────────────────────────────────────────────────────────
+
+  private async findRecent(take: number): Promise<JobListItem[]> {
+    const jobs = await this.prisma.job.findMany({
+      where: { isActive: true },
+      select: JOB_LIST_SELECT,
+      orderBy: { publishedAt: 'desc' },
+      take,
+    });
+
+    return jobs.map((job) => ({ ...job }));
+  }
+
+  // ─── findFeed ─────────────────────────────────────────────────────────────
+
+  async findFeed(userId?: string): Promise<JobListItem[]> {
+    // Anonymous visitors → 20 most recent active jobs
+    if (!userId) {
+      return this.findRecent(20);
+    }
+
+    // 1. Resolve the user's default CV (or first CV with an embedding)
+    const cv = await this.prisma.userCV.findFirst({
+      where: {
+        userId,
+        embedding: { not: null },
+      },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+      select: { id: true },
+    });
+
+    // No CV with embedding → fall back to most recent jobs
+    if (!cv) {
+      this.logger.debug(
+        `findFeed: user ${userId} has no CV with embedding — falling back to recent`,
+      );
+      return this.findRecent(20);
+    }
+
+    // 2. pgvector cosine similarity: compare CV embedding to Job embeddings.
+    //    We fetch 50 candidates so we have enough to merge with MatchScore rows.
+    type VectorRow = {
+      id: string;
+      title: string;
+      company: string;
+      company_logo_url: string | null;
+      description_short: string | null;
+      city: string | null;
+      country: string;
+      is_remote: boolean;
+      work_mode: string;
+      job_type: string;
+      sector: string | null;
+      salary_min: number | null;
+      salary_max: number | null;
+      salary_raw: string | null;
+      years_experience_min: number | null;
+      required_skills: string[];
+      source_platform: string;
+      source_url: string;
+      published_at: Date;
+      is_active: boolean;
+      is_premium: boolean;
+      view_count: number;
+      vector_score: number;
+    };
+
+    const vectorRows = await this.prisma.$queryRaw<VectorRow[]>`
+      SELECT
+        j.id,
+        j.title,
+        j.company,
+        j."companyLogoUrl"     AS company_logo_url,
+        j."descriptionShort"   AS description_short,
+        j.city,
+        j.country,
+        j."isRemote"           AS is_remote,
+        j."workMode"           AS work_mode,
+        j."jobType"            AS job_type,
+        j.sector,
+        j."salaryMin"          AS salary_min,
+        j."salaryMax"          AS salary_max,
+        j."salaryRaw"          AS salary_raw,
+        j."yearsExperienceMin" AS years_experience_min,
+        j."requiredSkills"     AS required_skills,
+        j."sourcePlatform"     AS source_platform,
+        j."sourceUrl"          AS source_url,
+        j."publishedAt"        AS published_at,
+        j."isActive"           AS is_active,
+        j."isPremium"          AS is_premium,
+        j."viewCount"          AS view_count,
+        1 - (j.embedding <=> (
+          SELECT embedding FROM "UserCV" WHERE id = ${cv.id}
+        ))                     AS vector_score
+      FROM "Job" j
+      WHERE
+        j."isActive" = true
+        AND j.embedding IS NOT NULL
+      ORDER BY
+        j.embedding <=> (
+          SELECT embedding FROM "UserCV" WHERE id = ${cv.id}
+        )
+      LIMIT 50
+    `;
+
+    // 3. Fetch existing AI MatchScore records for this user (covers the same candidates)
+    const jobIds = vectorRows.map((r) => r.id);
+
+    const [matchScores, savedJobs] = await Promise.all([
+      this.prisma.matchScore.findMany({
+        where: { userId, jobId: { in: jobIds } },
+        select: { jobId: true, score: true },
+      }),
+      this.prisma.savedJob.findMany({
+        where: { userId, jobId: { in: jobIds } },
+        select: { jobId: true },
+      }),
+    ]);
+
+    const matchScoreMap = new Map(matchScores.map((m) => [m.jobId, m.score]));
+    const savedJobIds = new Set(savedJobs.map((s) => s.jobId));
+
+    // 4. Merge: AI MatchScore is authoritative when present; otherwise use
+    //    the raw cosine similarity as a floating-point proxy score.
+    const merged: JobListItem[] = vectorRows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      company: r.company,
+      companyLogoUrl: r.company_logo_url,
+      descriptionShort: r.description_short,
+      city: r.city,
+      country: r.country,
+      isRemote: r.is_remote,
+      workMode: r.work_mode as JobListItem['workMode'],
+      jobType: r.job_type as JobListItem['jobType'],
+      sector: r.sector,
+      salaryMin: r.salary_min,
+      salaryMax: r.salary_max,
+      salaryRaw: r.salary_raw,
+      yearsExperienceMin: r.years_experience_min,
+      requiredSkills: r.required_skills,
+      sourcePlatform: r.source_platform as JobListItem['sourcePlatform'],
+      sourceUrl: r.source_url,
+      publishedAt: r.published_at,
+      isActive: r.is_active,
+      isPremium: r.is_premium,
+      viewCount: r.view_count,
+      isSaved: savedJobIds.has(r.id),
+      // AI MatchScore (0–100 range) is prioritised over raw cosine score (0–1)
+      matchScore: matchScoreMap.get(r.id) ?? r.vector_score,
+    }));
+
+    // 5. Sort descending by effective score, return top 30
+    merged.sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0));
+
+    return merged.slice(0, 30);
   }
 }

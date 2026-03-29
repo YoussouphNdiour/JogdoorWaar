@@ -1,18 +1,46 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { JobCard } from '../../../components/jobs/JobCard';
 import type { JobListItem } from '@jdw/shared-types';
 import { apiFetch } from '../../../lib/api/client';
 
+const VALID_SORT_VALUES = ['matchScore', 'date', 'salary'] as const;
+type SortValue = (typeof VALID_SORT_VALUES)[number];
+
+function isSortValue(v: string | null): v is SortValue {
+  return VALID_SORT_VALUES.includes(v as SortValue);
+}
+
 export default function JobsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const sortFromUrl = searchParams.get('sortBy');
+  const initialSort: SortValue = isSortValue(sortFromUrl) ? sortFromUrl : 'matchScore';
+
   const [jobs, setJobs] = useState<JobListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState('matchScore');
+  const [sortBy, setSortBy] = useState<SortValue>(initialSort);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedModes, setSelectedModes] = useState<string[]>([]);
+
+  // Keep local state in sync when the URL param changes externally (e.g. browser back/forward)
+  useEffect(() => {
+    const fromUrl = searchParams.get('sortBy');
+    const resolved: SortValue = isSortValue(fromUrl) ? fromUrl : 'matchScore';
+    setSortBy(resolved);
+  }, [searchParams]);
+
+  function handleSortChange(value: SortValue) {
+    setSortBy(value);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('sortBy', value);
+    router.push(`?${params.toString()}`);
+  }
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -134,12 +162,12 @@ export default function JobsPage() {
             </p>
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
+              onChange={(e) => handleSortChange(e.target.value as SortValue)}
               className="font-dm text-sm bg-white border border-sand-dark rounded-xl px-3 py-2 text-savane focus:outline-none focus:ring-2 focus:ring-terracotta/30"
             >
-              <option value="matchScore">Par matching</option>
-              <option value="date">Plus récentes</option>
-              <option value="salary">Par salaire</option>
+              <option value="matchScore">Pertinence</option>
+              <option value="date">Date</option>
+              <option value="salary">Salaire</option>
             </select>
           </div>
 
