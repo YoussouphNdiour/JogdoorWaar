@@ -20,6 +20,7 @@ import { CreateAlertDto } from './dto/create-alert.dto';
 import { UpdateAlertDto } from './dto/update-alert.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 
 @ApiTags('alerts')
 @ApiBearerAuth()
@@ -30,41 +31,41 @@ export class AlertsController {
 
   @Get()
   @ApiOperation({ summary: 'Mes alertes actives' })
-  findAll(@CurrentUser() user: { id: string }) {
-    return this.alertsService.findAll(user.id);
+  findAll(@CurrentUser() user: JwtPayload) {
+    return this.alertsService.findAll(user.sub);
   }
 
   @Post()
   @ApiOperation({ summary: 'Créer une alerte' })
-  create(@CurrentUser() user: { id: string }, @Body() dto: CreateAlertDto) {
-    return this.alertsService.create(user.id, dto);
+  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateAlertDto) {
+    return this.alertsService.create(user.sub, dto);
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Modifier une alerte' })
   update(
-    @CurrentUser() user: { id: string },
+    @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
     @Body() dto: UpdateAlertDto,
   ) {
-    return this.alertsService.update(user.id, id, dto);
+    return this.alertsService.update(user.sub, id, dto);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Supprimer une alerte' })
-  remove(@CurrentUser() user: { id: string }, @Param('id') id: string) {
-    return this.alertsService.remove(user.id, id);
+  remove(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.alertsService.remove(user.sub, id);
   }
 
   @Patch(':id/toggle')
   @ApiOperation({ summary: 'Activer / Désactiver une alerte' })
-  toggle(@CurrentUser() user: { id: string }, @Param('id') id: string) {
-    return this.alertsService.toggle(user.id, id);
+  toggle(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.alertsService.toggle(user.sub, id);
   }
 
   @Get('stats')
   @ApiOperation({ summary: 'Stats : offres trouvées par alerte' })
-  getStats(@CurrentUser() user: { id: string }) {
-    return this.alertsService.getStats(user.id);
+  getStats(@CurrentUser() user: JwtPayload) {
+    return this.alertsService.getStats(user.sub);
   }
 }
