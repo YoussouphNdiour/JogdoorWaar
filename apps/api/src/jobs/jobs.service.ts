@@ -485,12 +485,11 @@ export class JobsService {
       return this.findRecent(20);
     }
 
-    // 1. Resolve the user's default CV (or first CV with an embedding)
+    // 1. Resolve the user's default CV (or first CV with an embedding).
+    //    `embedding` is Unsupported("vector(512)") — Prisma omits it from WhereInput,
+    //    so we filter for a non-null embedding in the pgvector query below instead.
     const cv = await this.prisma.userCV.findFirst({
-      where: {
-        userId,
-        embedding: { not: null },
-      },
+      where: { userId },
       orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
       select: { id: true },
     });
@@ -530,6 +529,15 @@ export class JobsService {
       view_count: number;
       vector_score: number;
     };
+
+    // Guard: ensure the selected CV actually has an embedding (pgvector would error otherwise)
+    const cvHasEmbedding = await this.prisma.$queryRaw<[{ has_embedding: boolean }]>`
+      SELECT embedding IS NOT NULL AS has_embedding FROM "UserCV" WHERE id = ${cv.id}
+    `;
+    if (!cvHasEmbedding[0]?.has_embedding) {
+      this.logger.debug(`findFeed: CV ${cv.id} has no embedding — falling back to recent`);
+      return this.findRecent(20);
+    }
 
     const vectorRows = await this.prisma.$queryRaw<VectorRow[]>`
       SELECT
