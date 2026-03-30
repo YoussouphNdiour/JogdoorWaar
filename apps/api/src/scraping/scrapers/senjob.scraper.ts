@@ -16,7 +16,7 @@ export class SenjobScraper extends BaseScraper {
   /** BullMQ cron schedule — every 2 hours */
   static readonly cronSchedule = '0 */2 * * *';
 
-  private readonly MAX_PAGES = 8;
+  protected readonly MAX_PAGES = 8;
 
   constructor(prisma: PrismaService, deduplication: DeduplicationService) {
     super(prisma, deduplication);

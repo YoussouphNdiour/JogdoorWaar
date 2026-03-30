@@ -15,6 +15,9 @@ export class EmploiDakarScraper extends BaseScraper {
   /** BullMQ cron schedule — every 2 hours */
   static readonly cronSchedule = '0 */2 * * *';
 
+  /** Stop after this many listing pages per run. */
+  protected readonly MAX_PAGES = 15;
+
   constructor(prisma: PrismaService, deduplication: DeduplicationService) {
     super(prisma, deduplication);
   }

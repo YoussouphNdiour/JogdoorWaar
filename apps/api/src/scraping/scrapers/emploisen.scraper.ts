@@ -19,7 +19,7 @@ export class EmploiSenScraper extends BaseScraper {
   protected readonly baseUrl = 'https://www.emploi-sen.com';
   protected readonly logger = new Logger(EmploiSenScraper.name);
 
-  private readonly MAX_PAGES = 3;
+  protected readonly MAX_PAGES = 3;
 
   constructor(prisma: PrismaService, deduplication: DeduplicationService) {
     super(prisma, deduplication);

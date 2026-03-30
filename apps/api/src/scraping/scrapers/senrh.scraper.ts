@@ -19,7 +19,7 @@ export class SenRhScraper extends BaseScraper {
   protected readonly baseUrl = 'https://www.senrh.sn';
   protected readonly logger = new Logger(SenRhScraper.name);
 
-  private readonly MAX_PAGES = 2;
+  protected readonly MAX_PAGES = 2;
 
   constructor(prisma: PrismaService, deduplication: DeduplicationService) {
     super(prisma, deduplication);

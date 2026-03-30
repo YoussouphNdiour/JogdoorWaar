@@ -31,7 +31,7 @@ export class ScrapingWorker {
     private readonly senRhScraper: SenRhScraper,
   ) {}
 
-  @Process('scrape')
+  @Process({ name: 'scrape', concurrency: 3 })
   async handleScrape(job: Job<ScrapeJobPayload>): Promise<ScrapingResult> {
     const { platform } = job.data;
 

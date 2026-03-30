@@ -18,7 +18,7 @@ export class SeneJobsScraper extends BaseScraper {
   protected readonly baseUrl = 'https://www.senejobs.com';
   protected readonly logger = new Logger(SeneJobsScraper.name);
 
-  private readonly MAX_PAGES = 3;
+  protected readonly MAX_PAGES = 3;
 
   constructor(prisma: PrismaService, deduplication: DeduplicationService) {
     super(prisma, deduplication);

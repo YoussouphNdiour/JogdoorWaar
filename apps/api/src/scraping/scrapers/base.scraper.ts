@@ -52,6 +52,9 @@ export abstract class BaseScraper {
 
   // ─── Public entry-point ─────────────────────────────────────────────────────
 
+  /** Subclasses can override to limit pages per run (default: 50). */
+  protected readonly MAX_PAGES: number = 50;
+
   /** Full scrape run — called by the BullMQ worker or the scheduler. */
   async scrapeAll(): Promise<ScrapingResult> {
     const startedAt = new Date();
@@ -60,6 +63,7 @@ export abstract class BaseScraper {
     let errors = 0;
     let page = 0;
     let hasMore = true;
+    let consecutiveAllDupPages = 0;
 
     this.logger.log(`[${this.platform}] Scraping started`);
 
@@ -77,6 +81,8 @@ export abstract class BaseScraper {
         hasMore = false;
         break;
       }
+
+      let pageNew = 0;
 
       for (const url of urls) {
         try {
@@ -100,17 +106,32 @@ export abstract class BaseScraper {
 
           await this.persistJob(rawJob, fingerprint);
           processed++;
+          pageNew++;
         } catch (err) {
           errors++;
           this.logger.error(`[${this.platform}] Error processing ${url}`, err);
         }
       }
 
+      // Stop early if 2 consecutive pages had zero new jobs (all duplicates)
+      if (pageNew === 0) {
+        consecutiveAllDupPages++;
+        if (consecutiveAllDupPages >= 2) {
+          this.logger.log(
+            `[${this.platform}] 2 consecutive all-duplicate pages — stopping early at page ${page + 1}`,
+          );
+          hasMore = false;
+          break;
+        }
+      } else {
+        consecutiveAllDupPages = 0;
+      }
+
       page++;
 
-      // Safety cap — never exceed 50 pages per run.
-      if (page >= 50) {
-        this.logger.warn(`[${this.platform}] Reached page cap (50). Stopping.`);
+      // Safety cap — never exceed MAX_PAGES per run.
+      if (page >= this.MAX_PAGES) {
+        this.logger.warn(`[${this.platform}] Reached page cap (${this.MAX_PAGES}). Stopping.`);
         hasMore = false;
       }
     }

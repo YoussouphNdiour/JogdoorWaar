@@ -19,7 +19,7 @@ export class ExpatDakarScraper extends BaseScraper {
   protected readonly baseUrl = 'https://www.expat-dakar.com';
   protected readonly logger = new Logger(ExpatDakarScraper.name);
 
-  private readonly MAX_PAGES = 3;
+  protected readonly MAX_PAGES = 3;
 
   constructor(prisma: PrismaService, deduplication: DeduplicationService) {
     super(prisma, deduplication);
