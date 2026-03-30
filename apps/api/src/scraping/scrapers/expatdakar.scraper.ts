@@ -32,10 +32,9 @@ export class ExpatDakarScraper extends BaseScraper {
       return [];
     }
 
-    const offset = page * 20;
-    const listUrl = `${this.baseUrl}/emploi?o=${offset}`;
+    const listUrl = `${this.baseUrl}/emploi?page=${page + 1}`;
 
-    this.logger.debug(`Fetching listing page ${page + 1} (offset=${offset}): ${listUrl}`);
+    this.logger.debug(`Fetching listing page ${page + 1}: ${listUrl}`);
 
     let html: string;
     try {
@@ -58,11 +57,11 @@ export class ExpatDakarScraper extends BaseScraper {
       },
     );
 
-    // Fallback: anchors that look like individual listings
+    // Fallback: anchors that look like individual listings (/annonce/...)
     if (urls.length === 0) {
       $('a[href]').each((_i, el) => {
         const href = $(el).attr('href') ?? '';
-        if (href.includes('/emploi/') && href !== `${this.baseUrl}/emploi`) {
+        if (href.includes('/annonce/')) {
           const absolute = href.startsWith('http') ? href : `${this.baseUrl}${href}`;
           if (!urls.includes(absolute)) urls.push(absolute);
         }
